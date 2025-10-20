@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.env
+.venv/
+app.db
+uploaded_images/
+
+# Node
+node_modules/
+dist/
+*.log
+
+# OS
+.DS_Store
+
+# Vite
+frontend/.vite/
+
+# Ngrok
+ngrok.yml

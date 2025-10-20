@@ -1,0 +1,177 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../api";
+
+export default function Admin() {
+  const [user, setUser] = useState(null);
+  const [stats, setStats] = useState({
+    totalCards: 0,
+    totalTests: 0,
+    totalUsers: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        const [userResponse, cardsResponse, testsResponse, usersResponse] = await Promise.all([
+          api.get('/auth/me'),
+          api.get('/menu/'),
+          api.get('/tests/'),
+          api.get('/admin/users')
+        ]);
+
+        setUser(userResponse.data);
+        if (userResponse.data.role !== 'admin') {
+          window.location.href = '/access-denied';
+          return;
+        }
+
+        setStats({
+          totalCards: cardsResponse.data.length,
+          totalTests: testsResponse.data.length,
+          totalUsers: usersResponse.data.length
+        });
+      } catch (error) {
+        console.error('Error fetching admin data:', error);
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="container-fluid vh-100 d-flex align-items-center justify-content-center">
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">Загрузка...</span>
+          </div>
+          <p className="text-muted">Загрузка админ панели...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <div className="container-fluid vh-100 d-flex align-items-center justify-content-center">Загрузка...</div>;
+  }
+
+  return (
+    <div className="container-fluid py-4">
+      {/* Заголовок */}
+      <div className="row mb-4">
+        <div className="col-12">
+          <h1 className="display-4 fw-bold text-primary mb-2">
+            ⚙️ Админ панель
+          </h1>
+          <p className="lead text-muted">Управление системой обучения официантов</p>
+        </div>
+      </div>
+
+      {/* Компактная панель статистики */}
+      <div className="row mb-5">
+        <div className="col-12">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body py-3">
+              <div className="row g-0 text-center">
+                <div className="col-4">
+                  <div className="border-end">
+                    <div className="h3 mb-1 text-primary fw-bold">{stats.totalCards}</div>
+                    <div className="small text-muted">📋 Карточки</div>
+                  </div>
+                </div>
+                <div className="col-4">
+                  <div className="border-end">
+                    <div className="h3 mb-1 text-success fw-bold">{stats.totalTests}</div>
+                    <div className="small text-muted">📝 Тесты</div>
+                  </div>
+                </div>
+                <div className="col-4">
+                  <div className="h3 mb-1 text-info fw-bold">{stats.totalUsers}</div>
+                  <div className="small text-muted">👥 Пользователи</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Быстрые действия */}
+      <div className="row g-4">
+        <div className="col-12 col-md-6 col-lg-4">
+          <Link to="/admin/cards" className="text-decoration-none">
+            <div className="card h-100 border-0 shadow-sm hover-shadow-lg transition-all">
+              <div className="card-body text-center p-4">
+                <div className="mb-3">
+                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10" style={{ width: '80px', height: '80px' }}>
+                    <span className="display-4 text-primary">📋</span>
+                  </div>
+                </div>
+                <h4 className="card-title fw-bold text-dark mb-3">Управление карточками</h4>
+                <p className="card-text text-muted">
+                  Создавайте и редактируйте карточки меню с изображениями и описаниями
+                </p>
+                <div className="mt-3">
+                  <span className="badge bg-primary">Перейти</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        <div className="col-12 col-md-6 col-lg-4">
+          <Link to="/admin/tests" className="text-decoration-none">
+            <div className="card h-100 border-0 shadow-sm hover-shadow-lg transition-all">
+              <div className="card-body text-center p-4">
+                <div className="mb-3">
+                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10" style={{ width: '80px', height: '80px' }}>
+                    <span className="display-4 text-success">📝</span>
+                  </div>
+                </div>
+                <h4 className="card-title fw-bold text-dark mb-3">Управление тестами</h4>
+                <p className="card-text text-muted">
+                  Создавайте тесты с вопросами и вариантами ответов для проверки знаний
+                </p>
+                <div className="mt-3">
+                  <span className="badge bg-success">Перейти</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        <div className="col-12 col-md-6 col-lg-4">
+          <Link to="/admin/users" className="text-decoration-none">
+            <div className="card h-100 border-0 shadow-sm hover-shadow-lg transition-all">
+              <div className="card-body text-center p-4">
+                <div className="mb-3">
+                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-info bg-opacity-10" style={{ width: '80px', height: '80px' }}>
+                    <span className="display-4 text-info">👥</span>
+                  </div>
+                </div>
+                <h4 className="card-title fw-bold text-dark mb-3">Управление пользователями</h4>
+                <p className="card-text text-muted">
+                  Просматривайте статистику пользователей и управляйте их доступом
+                </p>
+                <div className="mt-3">
+                  <span className="badge bg-info">Перейти</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
