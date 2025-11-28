@@ -1,0 +1,34 @@
+/* Убираем скругление у всех кнопок */
+.btn,
+.btn-sm,
+.btn-lg,
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-success,
+.btn-outline-danger,
+.btn-outline-warning,
+.btn-outline-info,
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info {
+  border-radius: 0 !important;
+}
+
+/* Убираем скругление у групп кнопок */
+.btn-group .btn {
+  border-radius: 0 !important;
+}
+
+/* Убираем скругление у модальных окон */
+.modal-content {
+  border-radius: 0 !important;
+}
+
+/* Убираем скругление у карточек (опционально, если нужно) */
+.card {
+  border-radius: 0 !important;
+}
+

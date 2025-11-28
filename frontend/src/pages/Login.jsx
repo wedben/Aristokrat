@@ -33,7 +33,7 @@ export default function Login() {
 
   return (
     <>
-      <div className="container-fluid vh-100 d-flex align-items-center justify-content-center bg-light">
+      <div className="container-fluid vh-100 d-flex align-items-center justify-content-center bg-light px-3">
         <div className="row w-100 justify-content-center">
           <div className="col-12 col-md-6 col-lg-4">
             <div className="text-center mb-4">

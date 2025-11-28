@@ -58,7 +58,7 @@ export default function TestsList() {
   }
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid container-md mt-3 mt-md-4 px-3 px-md-4">
       <div className="row justify-content-center">
         <div className="col-12 col-lg-10">
           {/* Заголовок */}
@@ -155,7 +155,13 @@ export default function TestsList() {
                             <Link 
                               to={`/tests/${test.id}`}
                               className={`btn btn-lg w-100 ${
-                                isCompleted ? 'btn-outline-success' : 'btn-primary'
+                                isCompleted 
+                                  ? (progress && (progress.max_score - progress.score) <= test.max_errors_allowed && (progress.max_score - progress.score) > 0)
+                                    ? 'btn-outline-warning'
+                                    : (progress && (progress.max_score - progress.score) === 0)
+                                    ? 'btn-outline-success'
+                                    : 'btn-outline-danger'
+                                  : 'btn-primary'
                               }`}
                             >
                               {isCompleted ? '🔄 Пройти снова' : '▶️ Начать тест'}

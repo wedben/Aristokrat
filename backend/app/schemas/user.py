@@ -24,6 +24,8 @@ class WaiterRegister(BaseModel):
     last_name: str
     password: str
     password_confirm: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
 
     @field_validator("password")
     @classmethod
@@ -50,6 +52,8 @@ class WaiterRegister(BaseModel):
 class UserRead(UserBase):
     id: int
     is_active: bool
+    phone: Optional[str] = None
+    address: Optional[str] = None
 
     class Config:
         from_attributes = True

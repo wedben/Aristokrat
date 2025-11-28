@@ -21,19 +21,25 @@ def register(user_in: UserCreate, db: Session = Depends(get_db), current_user: O
 
     if existing_count == 0:
         role = UserRole.admin
+        is_active = True  # Первый пользователь (админ) активен сразу
+        is_pending_verification = False  # Первый админ не требует верификации
     else:
         if user_in.role != UserRole.waiter:
             # Не-админам нельзя создавать администраторов
             if current_user is None or current_user.role != UserRole.admin:
                 raise HTTPException(status_code=403, detail="Only admin can create non-waiter users")
         role = user_in.role
+        # Новые пользователи (кроме первого админа) создаются заблокированными для верификации
+        is_active = current_user is not None and current_user.role == UserRole.admin
+        is_pending_verification = not is_active  # Ожидает верификацию, если не активен сразу
 
     user = User(
         email=user_in.email,
         full_name=user_in.full_name,
         hashed_password=get_password_hash(user_in.password),
         role=role,
-        is_active=True,
+        is_active=is_active,
+        is_pending_verification=is_pending_verification,
     )
     db.add(user)
     db.commit()
@@ -46,12 +52,16 @@ def register_waiter(payload: WaiterRegister, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # Новые официанты регистрируются заблокированными для верификации администратором
     user = User(
         email=payload.email,
         full_name=f"{payload.first_name} {payload.last_name}",
         hashed_password=get_password_hash(payload.password),
+        phone=payload.phone,
+        address=payload.address,
         role=UserRole.waiter,
-        is_active=True,
+        is_active=False,  # Заблокирован до верификации администратором
+        is_pending_verification=True,  # Ожидает верификацию после регистрации
     )
     db.add(user)
     db.commit()

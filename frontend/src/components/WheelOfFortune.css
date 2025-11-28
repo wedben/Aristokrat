@@ -1,0 +1,287 @@
+/* Делаем везде так, чтобы свойства width и height задавали не размеры контента, а размеры блока */
+.wheel-modal-overlay * {
+  box-sizing: border-box;
+}
+
+/* Модальное окно */
+.wheel-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.wheel-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.wheel-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.wheel-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Общий блок для всех элементов */
+.deal-wheel {
+  /* Задаём переменные блока */
+  /* Размеры колеса */
+  --size: clamp(250px, 60vmin, 500px);
+  /* Настройки яркости и заливки фона секторов */
+  --lg-hs: 0 3%;
+  --lg-stop: 50%;
+  --lg: linear-gradient(
+      hsl(var(--lg-hs) 0%) 0 var(--lg-stop),
+      hsl(var(--lg-hs) 20%) var(--lg-stop) 100%
+    );
+  /* Добавляем позиционирование относительно других элементов */
+  position: relative;
+  /* Подключаем сетку */
+  display: grid;
+  grid-gap: calc(var(--size) / 20);
+  /* Выравниваем содержимое блока по центру */
+  align-items: center;
+  /* Задаём имена областей внутри сетки */
+  grid-template-areas:
+    "spinner"
+    "trigger";
+  /* Устанавливаем размер шрифта */
+  font-size: calc(var(--size) / 21);
+  margin: 0 auto;
+}
+
+/* Всё, что относится ко внутренним элементам главного блока, будет находиться в области сетки с названием spinner */
+.deal-wheel > * {
+  grid-area: spinner;
+}
+
+/* Сам блок и кнопка будут находиться в области сетки с названием trigger и будут выровнены по центру */
+.deal-wheel .btn-spin {
+  grid-area: trigger;
+  justify-self: center;
+}
+
+/* Сектор колеса */
+.spinner {
+  /* Добавляем относительное позиционирование */
+  position: relative;
+  /* Подключаем сетку */
+  display: grid;
+  /* Выравниваем всё по центру */
+  align-items: center;
+  /* Добавляем элемент в сетку */
+  grid-template-areas: "spinner";
+  /* Устанавливаем размеры */
+  width: var(--size);
+  height: var(--size);
+  /* Поворачиваем элемент */
+  transform: rotate(calc(var(--rotate, 25) * 1deg));
+  /* Рисуем круглую обводку, а всё, что не поместится, — будет скрыто за кругом */
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
+/* Всё, что внутри этого блока, будет находиться в области сетки с названием spinner */
+.spinner * {
+  grid-area: spinner;
+}
+
+/* Текст на секторах */
+.prize {
+  /* Включаем «гибкую» вёрстку */
+  display: flex;
+  align-items: center;
+  /* Задаём отступы от краёв блока */
+  padding: 0 calc(var(--size) / 6) 0 calc(var(--size) / 20);
+  /* Устанавливаем размеры */
+  width: 50%;
+  height: 50%;
+  /* Устанавливаем координаты, относительно которых будем вращать текст */
+  transform-origin: center right;
+  /* Поворачиваем текст */
+  transform: rotate(var(--rotate));
+  /* Запрещаем пользователю выделять мышкой текст на секторах */
+  user-select: none;
+}
+
+.prize .text {
+  font-size: clamp(0.7rem, 2vw, 1rem);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Язычок */
+.ticker {
+  /* Добавляем относительное позиционирование */
+  position: relative;
+  /* Устанавливаем размеры */
+  left: calc(var(--size) / -15);
+  width: calc(var(--size) / 10);
+  height: calc(var(--size) / 20);
+  /* Фон язычка */
+  background: var(--lg);
+  /* Делаем так, чтобы язычок был выше колеса */
+  z-index: 1;
+  /* Форма язычка */
+  clip-path: polygon(20% 0, 100% 50%, 20% 100%, 0% 50%);
+  /* Устанавливаем точку, относительно которой будет вращаться язычок при движении колеса */
+  transform-origin: center left;
+}
+
+/* Кнопка запуска колеса */
+.btn-spin {
+  color: white;
+  background: black;
+  border: none;
+  /* Берём размер шрифта такой же, как в колесе */
+  font-size: inherit;
+  /* Добавляем отступы от текста внутри кнопки */
+  padding: 0.9rem 2rem 1rem;
+  /* Скругляем углы */
+  border-radius: 0.5rem;
+  /* Меняем внешний вид курсора над кнопкой на руку*/
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-spin:hover:not(:disabled) {
+  background: #333;
+  transform: scale(1.05);
+}
+
+/* Если кнопка нажата и неактивна */
+.btn-spin:disabled {
+  /* Меняем внешний вид курсора */
+  cursor: progress;
+  /* Делаем кнопку полупрозрачной */
+  opacity: 0.25;
+}
+
+/* Анимация вращения */
+.is-spinning .spinner {
+  transition: transform 8s cubic-bezier(0.1, -0.01, 0, 1);
+}
+
+/* Анимация движения язычка */
+.is-spinning .ticker {
+  animation: tick 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Эффект, когда колесо задевает язычок при вращении */
+@keyframes tick {
+  40% {
+    /* Чуть поворачиваем язычок наверх в середине анимации */
+    transform: rotate(-12deg);
+  }
+}
+
+/* Анимируем выпавший сектор */
+.prize.selected .text {
+  /* Делаем текст белым */
+  color: white;
+  /* Настраиваем длительность анимации */
+  animation: selected 800ms ease;
+}
+
+/* Настраиваем анимацию текста на выпавшем секторе по кадрам */
+@keyframes selected {
+  /* Что происходит на 25% от начала анимации */
+  25% {
+    /* Увеличиваем текст в 1,25 раза */
+    transform: scale(1.25);
+    /* Добавляем тексту тень */
+    text-shadow: 1vmin 1vmin 0 hsla(0 0% 0% / 0.1);
+  }
+  40% {
+    transform: scale(0.92);
+    text-shadow: 0 0 0 hsla(0 0% 0% / 0.2);
+  }
+  60% {
+    transform: scale(1.02);
+    text-shadow: 0.5vmin 0.5vmin 0 hsla(0 0% 0% / 0.1);
+  }
+  75% {
+    transform: scale(0.98);
+  }
+  85% {
+    transform: scale(1);
+  }
+}
+
+/* Режим редактирования */
+.wheel-edit-mode {
+  padding: 1rem;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .wheel-modal {
+    max-width: 95vw;
+    max-height: 95vh;
+    border-radius: 8px;
+  }
+
+  .wheel-modal-header {
+    padding: 1rem;
+  }
+
+  .wheel-modal-body {
+    padding: 1rem;
+  }
+
+  .deal-wheel {
+    --size: clamp(200px, 70vmin, 400px);
+  }
+
+  .prize .text {
+    font-size: clamp(0.6rem, 3vw, 0.9rem);
+  }
+
+  .btn-spin {
+    padding: 0.7rem 1.5rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .deal-wheel {
+    --size: clamp(180px, 75vmin, 350px);
+  }
+
+  .prize .text {
+    font-size: clamp(0.5rem, 3.5vw, 0.8rem);
+  }
+
+  .btn-spin {
+    padding: 0.6rem 1.2rem 0.7rem;
+    font-size: 0.85rem;
+  }
+}
+

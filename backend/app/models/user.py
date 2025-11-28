@@ -13,5 +13,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     full_name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
+    phone = Column(String, nullable=True)
+    address = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    is_pending_verification = Column(Boolean, default=False)  # True для новых пользователей, ожидающих верификацию
     role = Column(Enum(UserRole), default=UserRole.waiter, nullable=False)

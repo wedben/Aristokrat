@@ -5,14 +5,19 @@ import { ToastProvider } from './contexts/ToastContext'
 import './App.css'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import Catalog from './pages/Catalog'
-import CardDetail from './pages/CardDetail'
+import WelcomePage from './pages/WelcomePage'
+import ServiceStandards from './pages/ServiceStandards'
+import BarCards from './pages/BarCards'
+import KitchenCards from './pages/KitchenCards'
+import WineCards from './pages/WineCards'
 import TestPage from './pages/Test'
 import TestsList from './pages/TestsList'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
-import AdminCards from './pages/AdminCards'
 import AdminTests from './pages/AdminTests'
+import AdminNewCards from './pages/AdminNewCards'
+import AdminUsers from './pages/AdminUsers'
+import AdminUserProfile from './pages/AdminUserProfile'
 import AccessDenied from './pages/AccessDenied'
 import TestAPI from './pages/TestAPI'
 
@@ -37,7 +42,6 @@ function AdminProtected({ children }) {
       .then(response => {
         setUser(response.data)
         if (response.data.role !== 'admin') {
-          // Перенаправляем официантов на страницу доступа запрещен
           window.location.href = '/access-denied'
         }
       })
@@ -75,7 +79,6 @@ function ProfileProtected({ children }) {
     api.get('/auth/me')
       .then(response => {
         setUser(response.data)
-        // Если админ пытается зайти в профиль, перенаправляем в админ панель
         if (response.data.role === 'admin') {
           window.location.href = '/admin'
         }
@@ -121,14 +124,15 @@ function Navigation() {
 
   if (!user) {
     return (
-      <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+      <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm sticky-top">
         <div className="container-fluid">
-          <Link to="/" className="navbar-brand fw-bold text-primary">
-            🍽️ Аристократ
+          <Link to="/" className="navbar-brand fw-bold text-primary d-flex align-items-center">
+            <span className="me-2">🍽️</span>
+            <span>Аристократ</span>
           </Link>
           
           <button 
-            className="navbar-toggler" 
+            className="navbar-toggler border-0" 
             type="button" 
             data-bs-toggle="collapse" 
             data-bs-target="#navbarNav"
@@ -142,21 +146,41 @@ function Navigation() {
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav me-auto">
               <li className="nav-item">
-                <Link to="/test-api" className="nav-link">
-                  🔧 Тест API
+                <Link to="/standards" className="nav-link d-flex align-items-center">
+                  <span className="me-2">📋</span>
+                  <span>Сервис</span>
+                </Link>
+              </li>
+              <li className="nav-item dropdown">
+                <a className="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <span className="me-2">📖</span>
+                  <span>Меню</span>
+                </a>
+                <ul className="dropdown-menu">
+                  <li><Link to="/bar" className="dropdown-item d-flex align-items-center"><span className="me-2">🍸</span>Барная карта</Link></li>
+                  <li><Link to="/kitchen" className="dropdown-item d-flex align-items-center"><span className="me-2">🍽️</span>Кухня</Link></li>
+                  <li><Link to="/wine" className="dropdown-item d-flex align-items-center"><span className="me-2">🍷</span>Винная карта</Link></li>
+                </ul>
+              </li>
+              <li className="nav-item">
+                <Link to="/tests" className="nav-link d-flex align-items-center">
+                  <span className="me-2">🧪</span>
+                  <span>Тесты</span>
                 </Link>
               </li>
             </ul>
             
             <ul className="navbar-nav">
               <li className="nav-item">
-                <Link to="/login" className="nav-link">
-                  🔑 Войти
+                <Link to="/login" className="nav-link d-flex align-items-center">
+                  <span className="me-2">🔑</span>
+                  <span>Войти</span>
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/register" className="btn btn-primary ms-2">
-                  ✨ Регистрация
+                <Link to="/register" className="btn btn-primary ms-2 d-flex align-items-center">
+                  <span className="me-2">✨</span>
+                  <span>Регистрация</span>
                 </Link>
               </li>
             </ul>
@@ -167,14 +191,15 @@ function Navigation() {
   }
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+    <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm sticky-top">
       <div className="container-fluid">
-        <Link to="/" className="navbar-brand fw-bold text-primary">
-          🍽️ Аристократ
+        <Link to="/" className="navbar-brand fw-bold text-primary d-flex align-items-center">
+          <span className="me-2">🍽️</span>
+          <span>Аристократ</span>
         </Link>
         
         <button 
-          className="navbar-toggler" 
+          className="navbar-toggler border-0" 
           type="button" 
           data-bs-toggle="collapse" 
           data-bs-target="#navbarNav"
@@ -188,43 +213,64 @@ function Navigation() {
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto">
             <li className="nav-item">
-              <Link to="/" className="nav-link">
-                📋 Меню
+              <Link to="/standards" className="nav-link d-flex align-items-center">
+                <span className="me-2">📋</span>
+                <span>Сервис</span>
               </Link>
             </li>
+            <li className="nav-item dropdown">
+              <a className="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span className="me-2">📖</span>
+                <span>Меню</span>
+              </a>
+              <ul className="dropdown-menu">
+                <li><Link to="/bar" className="dropdown-item d-flex align-items-center"><span className="me-2">🍸</span>Барная карта</Link></li>
+                <li><Link to="/kitchen" className="dropdown-item d-flex align-items-center"><span className="me-2">🍽️</span>Кухня</Link></li>
+                <li><Link to="/wine" className="dropdown-item d-flex align-items-center"><span className="me-2">🍷</span>Винная карта</Link></li>
+              </ul>
+            </li>
             <li className="nav-item">
-              <Link to="/tests" className="nav-link">
-                📝 Тесты
+              <Link to="/tests" className="nav-link d-flex align-items-center">
+                <span className="me-2">🧪</span>
+                <span>Тесты</span>
               </Link>
             </li>
             {user.role !== 'admin' && (
               <li className="nav-item">
-                <Link to="/profile" className="nav-link">
-                  👤 Профиль
+                <Link to="/profile" className="nav-link d-flex align-items-center">
+                  <span className="me-2">👤</span>
+                  <span>Профиль</span>
                 </Link>
               </li>
             )}
             {user.role === 'admin' && (
               <li className="nav-item">
-                <Link to="/admin" className="nav-link">
-                  ⚙️ Админ
+                <Link to="/admin" className="nav-link d-flex align-items-center">
+                  <span className="me-2">⚙️</span>
+                  <span>Админ</span>
                 </Link>
               </li>
             )}
           </ul>
           
           <ul className="navbar-nav">
-            <li className="nav-item">
+            <li className="nav-item d-none d-lg-block">
               <span className="navbar-text me-3">
                 👋 Добро пожаловать, {user.full_name}!
+              </span>
+            </li>
+            <li className="nav-item d-lg-none">
+              <span className="navbar-text me-3 small">
+                👋 {user.full_name}
               </span>
             </li>
             <li className="nav-item">
               <button
                 onClick={() => { localStorage.removeItem('token'); window.location.href = '/login' }}
-                className="btn btn-outline-danger"
+                className="btn btn-outline-danger d-flex align-items-center"
               >
-                🚪 Выход
+                <span className="me-2">🚪</span>
+                <span>Выход</span>
               </button>
             </li>
           </ul>
@@ -240,25 +286,24 @@ function App() {
       <BrowserRouter>
         <Navigation />
         <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Protected><Catalog /></Protected>} />
-        <Route path="/menu" element={<Protected><Catalog /></Protected>} />
-        <Route path="/test-api" element={<TestAPI />} />
-        <Route path="/menu/:id" element={<Protected><CardDetail /></Protected>} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/tests" element={<Protected><TestsList /></Protected>} />
-        <Route path="/tests/:id" element={<Protected><TestPage /></Protected>} />
-        <Route path="/profile" element={<ProfileProtected><Profile /></ProfileProtected>} />
-        <Route path="/admin" element={<AdminProtected><Admin /></AdminProtected>} />
-        <Route path="/admin/cards" element={<AdminProtected><AdminCards /></AdminProtected>} />
-        <Route path="/admin/tests" element={<AdminProtected><AdminTests /></AdminProtected>} />
-        <Route path="/admin/users" element={<AdminProtected><Profile /></AdminProtected>} />
-        <Route path="/admin/*" element={<AdminProtected><Admin /></AdminProtected>} />
-        {/* Защита от прямого доступа к админ-функциям */}
-        <Route path="/menu/create" element={<AdminProtected><AdminCards /></AdminProtected>} />
-        <Route path="/menu/edit/*" element={<AdminProtected><AdminCards /></AdminProtected>} />
-        {/* Страница доступа запрещен для официантов */}
-        <Route path="/access-denied" element={<AccessDenied />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/standards" element={<ServiceStandards />} />
+          <Route path="/bar" element={<BarCards />} />
+          <Route path="/kitchen" element={<KitchenCards />} />
+          <Route path="/wine" element={<WineCards />} />
+          <Route path="/tests" element={<Protected><TestsList /></Protected>} />
+          <Route path="/tests/:id" element={<Protected><TestPage /></Protected>} />
+          <Route path="/profile" element={<ProfileProtected><Profile /></ProfileProtected>} />
+          <Route path="/admin" element={<AdminProtected><Admin /></AdminProtected>} />
+          <Route path="/admin/new-cards" element={<AdminProtected><AdminNewCards /></AdminProtected>} />
+          <Route path="/admin/tests" element={<AdminProtected><AdminTests /></AdminProtected>} />
+          <Route path="/admin/users" element={<AdminProtected><AdminUsers /></AdminProtected>} />
+          <Route path="/admin/users/:userId" element={<AdminProtected><AdminUserProfile /></AdminProtected>} />
+          <Route path="/admin/*" element={<AdminProtected><Admin /></AdminProtected>} />
+          <Route path="/access-denied" element={<AccessDenied />} />
+          <Route path="/test-api" element={<TestAPI />} />
         </Routes>
       </BrowserRouter>
     </ToastProvider>

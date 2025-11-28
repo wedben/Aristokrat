@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import WheelOfFortune from "../components/WheelOfFortune";
+import "../styles/wheel-button.css";
 
 export default function Admin() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({
-    totalCards: 0,
+    totalNewCards: 0,
     totalTests: 0,
     totalUsers: 0
   });
+  const [pendingUsers, setPendingUsers] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showWheel, setShowWheel] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -20,11 +24,12 @@ export default function Admin() {
 
     const fetchData = async () => {
       try {
-        const [userResponse, cardsResponse, testsResponse, usersResponse] = await Promise.all([
+        const [userResponse, newCardsResponse, testsResponse, usersResponse, pendingResponse] = await Promise.all([
           api.get('/auth/me'),
-          api.get('/menu/'),
+          api.get('/cards'),
           api.get('/tests/'),
-          api.get('/admin/users')
+          api.get('/admin/users'),
+          api.get('/admin/users/pending-verification')
         ]);
 
         setUser(userResponse.data);
@@ -34,10 +39,11 @@ export default function Admin() {
         }
 
         setStats({
-          totalCards: cardsResponse.data.length,
+          totalNewCards: newCardsResponse.data.length,
           totalTests: testsResponse.data.length,
           totalUsers: usersResponse.data.length
         });
+        setPendingUsers(pendingResponse.data.count);
       } catch (error) {
         console.error('Error fetching admin data:', error);
         localStorage.removeItem('token');
@@ -79,26 +85,57 @@ export default function Admin() {
         </div>
       </div>
 
+      {/* Уведомление о пользователях, ожидающих верификации */}
+      {pendingUsers > 0 && (
+        <div className="row mb-3 mb-md-4">
+          <div className="col-12">
+            <div className="alert alert-warning alert-dismissible fade show" role="alert">
+              <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 gap-md-3">
+                <div className="d-none d-md-block">
+                  <span className="fs-3">⚠️</span>
+                </div>
+                <div className="flex-grow-1">
+                  <h5 className="alert-heading mb-1 mb-md-2">Требуется верификация пользователей</h5>
+                  <p className="mb-0 mb-md-0 small">
+                    {pendingUsers === 1 
+                      ? '1 новый пользователь ожидает верификации администратором'
+                      : `${pendingUsers} новых пользователей ожидают верификации администратором`
+                    }
+                  </p>
+                </div>
+                <Link to="/admin/users" className="btn btn-warning btn-sm w-100 w-md-auto">
+                  <span className="d-none d-md-inline">Перейти к пользователям →</span>
+                  <span className="d-md-none">Перейти →</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Компактная панель статистики */}
-      <div className="row mb-5">
+      <div className="row mb-4 mb-md-5">
         <div className="col-12">
           <div className="card border-0 shadow-sm">
             <div className="card-body py-3">
               <div className="row g-0 text-center">
                 <div className="col-4">
                   <div className="border-end">
-                    <div className="h3 mb-1 text-primary fw-bold">{stats.totalCards}</div>
-                    <div className="small text-muted">📋 Карточки</div>
+                    <div className="h4 h3-md mb-1 text-warning fw-bold">{stats.totalNewCards}</div>
+                    <div className="small text-muted">
+                      <span className="d-none d-sm-inline">🆕 Новые карточки</span>
+                      <span className="d-inline d-sm-none">🆕 Карточки</span>
+                    </div>
                   </div>
                 </div>
                 <div className="col-4">
                   <div className="border-end">
-                    <div className="h3 mb-1 text-success fw-bold">{stats.totalTests}</div>
+                    <div className="h4 h3-md mb-1 text-success fw-bold">{stats.totalTests}</div>
                     <div className="small text-muted">📝 Тесты</div>
                   </div>
                 </div>
                 <div className="col-4">
-                  <div className="h3 mb-1 text-info fw-bold">{stats.totalUsers}</div>
+                  <div className="h4 h3-md mb-1 text-info fw-bold">{stats.totalUsers}</div>
                   <div className="small text-muted">👥 Пользователи</div>
                 </div>
               </div>
@@ -108,39 +145,39 @@ export default function Admin() {
       </div>
 
       {/* Быстрые действия */}
-      <div className="row g-4">
-        <div className="col-12 col-md-6 col-lg-4">
-          <Link to="/admin/cards" className="text-decoration-none">
+      <div className="row g-3 g-md-4">
+        <div className="col-12 col-sm-6 col-lg-4">
+          <Link to="/admin/new-cards" className="text-decoration-none">
             <div className="card h-100 border-0 shadow-sm hover-shadow-lg transition-all">
-              <div className="card-body text-center p-4">
+              <div className="card-body text-center p-3 p-md-4">
                 <div className="mb-3">
-                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10" style={{ width: '80px', height: '80px' }}>
-                    <span className="display-4 text-primary">📋</span>
+                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-10" style={{ width: '60px', height: '60px' }}>
+                    <span className="fs-2 text-warning">🆕</span>
                   </div>
                 </div>
-                <h4 className="card-title fw-bold text-dark mb-3">Управление карточками</h4>
-                <p className="card-text text-muted">
-                  Создавайте и редактируйте карточки меню с изображениями и описаниями
+                <h5 className="card-title fw-bold text-dark mb-3">Новые карточки</h5>
+                <p className="card-text text-muted small">
+                  Управление карточками сервиса, барной карты, кухни и винной карты
                 </p>
                 <div className="mt-3">
-                  <span className="badge bg-primary">Перейти</span>
+                  <span className="badge bg-warning">Перейти</span>
                 </div>
               </div>
             </div>
           </Link>
         </div>
 
-        <div className="col-12 col-md-6 col-lg-4">
+        <div className="col-12 col-sm-6 col-lg-4">
           <Link to="/admin/tests" className="text-decoration-none">
             <div className="card h-100 border-0 shadow-sm hover-shadow-lg transition-all">
-              <div className="card-body text-center p-4">
+              <div className="card-body text-center p-3 p-md-4">
                 <div className="mb-3">
-                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10" style={{ width: '80px', height: '80px' }}>
-                    <span className="display-4 text-success">📝</span>
+                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10" style={{ width: '60px', height: '60px' }}>
+                    <span className="fs-2 text-success">📝</span>
                   </div>
                 </div>
-                <h4 className="card-title fw-bold text-dark mb-3">Управление тестами</h4>
-                <p className="card-text text-muted">
+                <h5 className="card-title fw-bold text-dark mb-3">Управление тестами</h5>
+                <p className="card-text text-muted small">
                   Создавайте тесты с вопросами и вариантами ответов для проверки знаний
                 </p>
                 <div className="mt-3">
@@ -151,17 +188,17 @@ export default function Admin() {
           </Link>
         </div>
 
-        <div className="col-12 col-md-6 col-lg-4">
+        <div className="col-12 col-sm-6 col-lg-4">
           <Link to="/admin/users" className="text-decoration-none">
             <div className="card h-100 border-0 shadow-sm hover-shadow-lg transition-all">
-              <div className="card-body text-center p-4">
+              <div className="card-body text-center p-3 p-md-4">
                 <div className="mb-3">
-                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-info bg-opacity-10" style={{ width: '80px', height: '80px' }}>
-                    <span className="display-4 text-info">👥</span>
+                  <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-info bg-opacity-10" style={{ width: '60px', height: '60px' }}>
+                    <span className="fs-2 text-info">👥</span>
                   </div>
                 </div>
-                <h4 className="card-title fw-bold text-dark mb-3">Управление пользователями</h4>
-                <p className="card-text text-muted">
+                <h5 className="card-title fw-bold text-dark mb-3">Управление пользователями</h5>
+                <p className="card-text text-muted small">
                   Просматривайте статистику пользователей и управляйте их доступом
                 </p>
                 <div className="mt-3">
@@ -172,6 +209,19 @@ export default function Admin() {
           </Link>
         </div>
       </div>
+
+      {/* Кнопка рулетки (фиксированная справа снизу) */}
+      <button
+        className="btn btn-primary wheel-button"
+        onClick={() => setShowWheel(true)}
+        title="Колесо фортуны"
+        aria-label="Открыть колесо фортуны"
+      >
+        🎰
+      </button>
+
+      {/* Модальное окно рулетки */}
+      {showWheel && <WheelOfFortune onClose={() => setShowWheel(false)} />}
     </div>
   );
 }

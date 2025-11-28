@@ -1,0 +1,50 @@
+/* Кнопка рулетки - адаптация для мобильных устройств */
+.wheel-button {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  font-size: 24px !important;
+  z-index: 1000 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  padding: 0 !important;
+}
+
+.wheel-button:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.wheel-button:active {
+  transform: scale(0.95) !important;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+  .wheel-button {
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 20px !important;
+    bottom: 15px !important;
+    right: 15px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .wheel-button {
+    width: 45px !important;
+    height: 45px !important;
+    font-size: 18px !important;
+    bottom: 10px !important;
+    right: 10px !important;
+  }
+}
+

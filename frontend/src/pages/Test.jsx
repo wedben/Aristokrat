@@ -15,8 +15,13 @@ export default function TestPage() {
     const fetchTest = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/tests/${id}`);
-        setTest(response.data);
+        const testResponse = await api.get(`/tests/${id}`);
+        const questionsResponse = await api.get(`/tests/${id}/questions`);
+        
+        setTest({
+          ...testResponse.data,
+          questions: questionsResponse.data?.questions || []
+        });
       } catch (err) {
         console.error('Error fetching test:', err);
         setError('Ошибка загрузки теста');
@@ -40,7 +45,11 @@ export default function TestPage() {
         answer_ids: Array.isArray(answerIds) ? answerIds : [answerIds]
       }));
       
-      const response = await api.post(`/tests/${id}/submit`, picked);
+      const response = await api.post(`/tests/${id}/submit`, {
+        answers: picked,
+        completion_time: null
+      });
+      
       setResult(response.data);
     } catch (err) {
       console.error('Error submitting test:', err);
@@ -66,29 +75,18 @@ export default function TestPage() {
   };
 
   const isAllQuestionsAnswered = () => {
-    if (!test || !test.questions) return false;
+    if (!test || !test.questions || test.questions.length === 0) return false;
     return test.questions.every(question => isQuestionAnswered(question.id));
   };
 
   const scrollToFirstUnanswered = () => {
-    if (!test || !test.questions) return;
+    if (!test || !test.questions || test.questions.length === 0) return;
     
     const firstUnanswered = test.questions.find(question => !isQuestionAnswered(question.id));
     if (firstUnanswered) {
       const questionElement = document.getElementById(`question-${firstUnanswered.id}`);
       if (questionElement) {
         questionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Добавляем визуальное выделение
-        questionElement.style.border = '3px solid #0d6efd';
-        questionElement.style.borderRadius = '8px';
-        questionElement.style.padding = '15px';
-        questionElement.style.boxShadow = '0 0 10px rgba(13, 110, 253, 0.5)';
-        setTimeout(() => {
-          questionElement.style.border = '';
-          questionElement.style.borderRadius = '';
-          questionElement.style.padding = '';
-          questionElement.style.boxShadow = '';
-        }, 2000);
       }
     }
   };
@@ -97,10 +95,8 @@ export default function TestPage() {
     setResult(null);
     setAnswers({});
     setError('');
-    // Прокручиваем к началу теста
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
 
   if (loading) {
     return (
@@ -114,7 +110,7 @@ export default function TestPage() {
     );
   }
 
-  if (error) {
+  if (error && !test) {
     return (
       <div className="container mt-4">
         <div className="alert alert-danger" role="alert">
@@ -127,11 +123,11 @@ export default function TestPage() {
     );
   }
 
-  if (!test) {
+  if (!test || !test.questions || test.questions.length === 0) {
     return (
       <div className="container mt-4">
         <div className="alert alert-warning" role="alert">
-          Тест не найден
+          Тест не найден или в нем нет вопросов
         </div>
         <Link to="/tests" className="btn btn-primary">
           ← Назад к тестам
@@ -144,26 +140,22 @@ export default function TestPage() {
     const errorsMade = result.total_count - result.correct_count;
     const maxErrorsAllowed = test?.max_errors_allowed || 0;
     
-    // Определяем статус теста
     let statusColor = '';
     let statusIcon = '';
     let statusTitle = '';
     let progressBarColor = '';
     
     if (errorsMade === 0) {
-      // Зеленый - все правильно
       statusColor = 'text-success';
       statusIcon = '🎉';
       statusTitle = 'Отлично!';
       progressBarColor = 'bg-success';
     } else if (errorsMade <= maxErrorsAllowed) {
-      // Желтый - пройден с допустимыми ошибками
       statusColor = 'text-warning';
       statusIcon = '⚠️';
       statusTitle = 'Тест пройден с ошибками';
       progressBarColor = 'bg-warning';
     } else {
-      // Красный - не пройден
       statusColor = 'text-danger';
       statusIcon = '❌';
       statusTitle = 'Тест не пройден';
@@ -237,7 +229,7 @@ export default function TestPage() {
   }
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid container-md mt-3 mt-md-4 px-3 px-md-4">
       <div className="row justify-content-center">
         <div className="col-12 col-lg-10">
           {/* Заголовок теста */}
@@ -249,15 +241,21 @@ export default function TestPage() {
               <p className="lead text-muted mb-3">
                 {test.description}
               </p>
-              <div className="d-flex justify-content-center gap-3 mb-3">
+              <div className="d-flex flex-column flex-sm-row justify-content-center gap-2 gap-sm-3 mb-3">
                 <span className="badge bg-primary fs-6">
-                  Всего вопросов: {test.questions.length}
+                  <span className="d-none d-sm-inline">Всего вопросов: </span>
+                  <span className="d-sm-none">Вопросов: </span>
+                  {test.questions.length}
                 </span>
                 <span className="badge bg-success fs-6">
-                  Отвечено: {test.questions.filter(q => isQuestionAnswered(q.id)).length}
+                  <span className="d-none d-sm-inline">Отвечено: </span>
+                  <span className="d-sm-none">Отв.: </span>
+                  {test.questions.filter(q => isQuestionAnswered(q.id)).length}
                 </span>
                 <span className="badge bg-warning text-dark fs-6">
-                  Осталось: {test.questions.filter(q => !isQuestionAnswered(q.id)).length}
+                  <span className="d-none d-sm-inline">Осталось: </span>
+                  <span className="d-sm-none">Ост.: </span>
+                  {test.questions.filter(q => !isQuestionAnswered(q.id)).length}
                 </span>
               </div>
             </div>
@@ -275,7 +273,7 @@ export default function TestPage() {
                           <img
                             src={question.image_path}
                             alt="Question"
-                            className="img-thumbnail"
+                            className="img-thumbnail d-none d-sm-block"
                             style={{ width: '80px', height: '80px', objectFit: 'cover' }}
                           />
                         )}
@@ -303,8 +301,8 @@ export default function TestPage() {
                         <div className="row g-2">
                           {question.answers.map((answer) => (
                             <div key={answer.id} className="col-12">
-                              <div className="form-check p-3 border rounded">
-              <input
+                              <div className="form-check p-3 border">
+                                <input
                                   type="checkbox"
                                   id={`q${question.id}_a${answer.id}`}
                                   className="form-check-input"
@@ -316,16 +314,16 @@ export default function TestPage() {
                                   className="form-check-label w-100"
                                 >
                                   <span className="fs-6">{answer.text}</span>
-            </label>
+                                </label>
                               </div>
                             </div>
-          ))}
+                          ))}
                         </div>
                       </div>
                     </div>
                   </div>
-        </div>
-      ))}
+                </div>
+              ))}
 
               {/* Кнопка отправки */}
               <div className="text-center mt-4">

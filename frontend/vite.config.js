@@ -17,7 +17,17 @@ export default defineConfig({
       'metal-carpets-kneel.loca.lt',
       'purple-crabs-care.loca.lt',
       'seven-meals-exist.loca.lt',
-      '.loca.lt'
-    ]
+      '.loca.lt',
+      '.ngrok-free.dev',
+      '.ngrok.app',
+      '.ngrok.io'
+    ],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
   }
 })

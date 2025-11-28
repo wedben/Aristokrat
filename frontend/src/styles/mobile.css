@@ -1,0 +1,932 @@
+/* Мобильные стили для приложения Аристократ */
+
+/* Общие мобильные стили */
+@media (max-width: 768px) {
+  /* Уменьшаем отступы для мобильных устройств */
+  .container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  /* Адаптируем заголовки */
+  .display-4 {
+    font-size: 2rem;
+  }
+  
+  .display-5 {
+    font-size: 1.75rem;
+  }
+  
+  .display-6 {
+    font-size: 1.5rem;
+  }
+  
+  /* Улучшаем читаемость текста на мобильных */
+  .lead {
+    font-size: 1rem;
+  }
+  
+  /* Адаптируем карточки */
+  .card-body {
+    padding: 1rem;
+  }
+  
+  /* Улучшаем кнопки для мобильных */
+  .btn {
+    min-height: 44px; /* Минимальный размер для удобного нажатия */
+  }
+  
+  .btn-sm {
+    min-height: 36px;
+  }
+  
+  /* Адаптируем модальные окна */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .modal-content {
+    border-radius: 0.5rem;
+  }
+  
+  /* Улучшаем навигацию */
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+  
+  .nav-link {
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Адаптируем формы */
+  .form-control, .form-select {
+    font-size: 16px; /* Предотвращает зум на iOS */
+  }
+  
+  /* Улучшаем отображение иконок */
+  .fs-1 {
+    font-size: 2rem !important;
+  }
+  
+  .fs-2 {
+    font-size: 1.5rem !important;
+  }
+  
+  .fs-3 {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Адаптируем статистику */
+  .h3 {
+    font-size: 1.5rem;
+  }
+  
+  .h4 {
+    font-size: 1.25rem;
+  }
+  
+  .h5 {
+    font-size: 1.1rem;
+  }
+  
+  /* Улучшаем отображение карточек в сетке */
+  .row.g-3 > * {
+    padding: 0.5rem;
+  }
+  
+  /* Улучшаем отображение карточек */
+  .card {
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  
+  .card-body {
+    padding: 1rem;
+    overflow: hidden;
+  }
+  
+  /* Улучшаем отображение текста в карточках */
+  .card-text {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Адаптируем календарь */
+  .react-calendar {
+    width: 100%;
+    font-size: 14px;
+  }
+  
+  .react-calendar__tile {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  /* Улучшаем отображение текста в модальных окнах */
+  .modal-body {
+    font-size: 14px;
+  }
+  
+  /* Адаптируем таблицы */
+  .table-responsive {
+    font-size: 14px;
+  }
+  
+  /* Улучшаем отображение бейджей */
+  .badge {
+    font-size: 0.75rem;
+    max-width: 100%;
+    word-wrap: break-word;
+    white-space: normal;
+    text-align: center;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  /* Улучшаем отображение кнопок в карточках */
+  .card .badge {
+    display: inline-block;
+    max-width: calc(100% - 2rem);
+    margin: 0 auto;
+  }
+  
+  /* Стили для навигации по характеристикам вина на больших экранах */
+  .btn-outline-primary {
+    padding: 0.5rem;
+    border-radius: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-outline-primary:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+    transform: scale(1.1);
+  }
+  
+  .btn-outline-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  
+  /* Специальные стили для винной карты на мобильных */
+  .wine-card-mobile {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+  
+  .wine-characteristics-mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+    order: 1;
+  }
+  
+  .wine-description-mobile {
+    order: 2;
+  }
+  
+  .wine-image-mobile {
+    order: 3;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Улучшаем навигацию по характеристикам на мобильных */
+  .wine-characteristics-mobile .d-flex.flex-column.flex-sm-row {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  
+  .wine-characteristics-mobile .d-flex.justify-content-center.gap-2 {
+    flex-wrap: wrap;
+    justify-content: center !important;
+  }
+  
+  .wine-characteristics-mobile .progress {
+    width: 100% !important;
+    margin-top: 0.5rem !important;
+  }
+  
+  /* На больших экранах прогресс-бар под стрелочками */
+  @media (min-width: 768px) {
+    .wine-characteristics-mobile .d-flex.flex-column {
+      flex-direction: column !important;
+    }
+    
+    .wine-characteristics-mobile .progress {
+      width: 100% !important;
+      margin-top: 0.5rem !important;
+    }
+  }
+  
+  /* Адаптируем дропдауны */
+  .dropdown-menu {
+    font-size: 14px;
+  }
+  
+  /* Улучшаем отображение прогресс-баров */
+  .progress {
+    height: 0.5rem;
+  }
+  
+  /* Адаптируем анимации для мобильных */
+  .transition-all {
+    transition: all 0.2s ease;
+  }
+  
+  /* Улучшаем отображение карточек профиля */
+  .card-title {
+    font-size: 1rem;
+  }
+  
+  .card-text {
+    font-size: 0.875rem;
+  }
+  
+  /* Адаптируем кнопки действий */
+  .btn-group .btn {
+    font-size: 0.875rem;
+  }
+  
+  /* Улучшаем отображение модальных окон */
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-footer {
+    padding: 1rem;
+  }
+  
+  /* Адаптируем формы в модальных окнах */
+  .form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  
+  /* Улучшаем отображение текста в карточках */
+  .text-muted {
+    font-size: 0.8rem;
+  }
+  
+  .small {
+    font-size: 0.75rem;
+  }
+}
+
+/* Дополнительные стили для очень маленьких экранов */
+@media (max-width: 576px) {
+  .container-fluid {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  
+  .card-body {
+    padding: 0.75rem;
+  }
+  
+  .btn {
+    font-size: 0.875rem;
+  }
+  
+  .modal-dialog {
+    margin: 0.25rem;
+  }
+  
+  .navbar-brand {
+    font-size: 1rem;
+  }
+  
+  .display-4 {
+    font-size: 1.75rem;
+  }
+  
+  .h3 {
+    font-size: 1.25rem;
+  }
+  
+  .h4 {
+    font-size: 1.1rem;
+  }
+  
+  .h5 {
+    font-size: 1rem;
+  }
+  
+  /* Улучшаем отображение кнопок на очень маленьких экранах */
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.6rem;
+    max-width: calc(100% - 1rem);
+  }
+  
+  .card .badge {
+    max-width: calc(100% - 1rem);
+  }
+  
+  /* Стили для навигации по характеристикам вина */
+  .btn-outline-primary {
+    padding: 0.5rem;
+    border-radius: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .btn-outline-primary:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+  }
+  
+  .btn-outline-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  
+  /* Дополнительные стили для винной карты на очень маленьких экранах */
+  .wine-card-mobile {
+    max-height: none !important;
+  }
+  
+  .wine-characteristics-mobile {
+    margin-bottom: 1rem;
+  }
+  
+  .wine-description-mobile {
+    margin-bottom: 1rem;
+  }
+  
+  .wine-image-mobile img {
+    height: 250px !important;
+  }
+}
+
+/* Стили для горизонтальной ориентации на мобильных */
+@media (max-width: 768px) and (orientation: landscape) {
+  .modal-dialog {
+    max-height: 90vh;
+  }
+  
+  .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  
+  .navbar {
+    padding: 0.25rem 0;
+  }
+  
+  .card-body {
+    padding: 0.5rem;
+  }
+}
+
+/* Улучшения для touch устройств */
+@media (hover: none) and (pointer: coarse) {
+  .btn:hover {
+    transform: none;
+  }
+  
+  .card:hover {
+    transform: none;
+  }
+  
+  .nav-link:hover {
+    background-color: transparent;
+  }
+  
+  /* Увеличиваем области нажатия */
+  .btn-group .btn {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .nav-link {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Улучшаем контрастность и читаемость на мобильных */
+@media (max-width: 768px) {
+  /* Улучшаем контрастность текста */
+  .card-text {
+    color: #6c757d !important;
+  }
+  
+  .text-muted {
+    color: #6c757d !important;
+  }
+  
+  /* Улучшаем контрастность заголовков */
+  .card-title {
+    color: #212529 !important;
+  }
+  
+  /* Улучшаем контрастность кнопок */
+  .badge {
+    color: white !important;
+  }
+  
+  /* Улучшаем контрастность иконок */
+  .text-primary {
+    color: #0d6efd !important;
+  }
+  
+  .text-success {
+    color: #198754 !important;
+  }
+  
+  /* Улучшаем контрастность навигации */
+  .navbar-brand {
+    color: #0d6efd !important;
+  }
+  
+  /* Улучшаем контрастность в модальных окнах */
+  .modal-content {
+    background-color: white !important;
+  }
+  
+  .modal-header {
+    background-color: #0d6efd !important;
+    color: white !important;
+  }
+  
+  .modal-body {
+    color: #212529 !important;
+  }
+
+  /* Адаптируем уведомления */
+  .alert {
+    padding: 0.75rem 1rem;
+  }
+
+  .alert-heading {
+    font-size: 1rem;
+  }
+
+  /* Адаптируем статистику в карточках */
+  .row.g-0.text-center > .col-4 {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .row.g-0.text-center > .col-6 {
+    padding: 0.5rem 0.25rem;
+  }
+
+  /* Улучшаем отображение карточек пользователей */
+  .card.h-100 {
+    min-height: auto;
+  }
+
+  /* Адаптируем sidebar профиля */
+  .d-flex.flex-row.flex-md-column {
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  /* Улучшаем отображение модальных окон на мобильных */
+  .modal-dialog {
+    max-width: calc(100% - 1rem);
+  }
+
+  /* Адаптируем карточки в модальных окнах */
+  .modal-body .row .col-3,
+  .modal-body .row .col-6 {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
+  /* Улучшаем отображение текста в карточках изученных карточек */
+  .modal-body .card-title {
+    font-size: 0.85rem;
+    line-height: 1.2;
+  }
+
+  /* Адаптируем статистику в профиле пользователя */
+  .row.text-center > .col-4 {
+    padding: 0.5rem 0.25rem;
+  }
+
+  /* Улучшаем отображение календаря на мобильных */
+  .react-calendar {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Адаптируем модальные окна с календарем */
+  .modal-lg {
+    max-width: calc(100% - 1rem);
+  }
+
+  /* Улучшаем отображение кнопок действий в профиле */
+  .d-flex.gap-2 {
+    flex-wrap: wrap;
+  }
+
+  /* Адаптируем карточки статистики */
+  .col-12.col-md-4 {
+    margin-bottom: 1rem;
+  }
+
+  /* Улучшаем отображение информации о пользователе */
+  .card-body > div {
+    font-size: 0.9rem;
+  }
+
+  /* Адаптируем списки активности */
+  .list-group-item {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  /* Улучшаем отображение заголовков в модальных окнах */
+  .modal-title {
+    font-size: 1.1rem;
+  }
+
+  /* Адаптируем таблицы на мобильных */
+  .table {
+    font-size: 0.875rem;
+  }
+
+  .table td,
+  .table th {
+    padding: 0.5rem;
+  }
+
+  /* Улучшаем отображение форм на мобильных */
+  .form-control,
+  .form-select {
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Адаптируем кнопки в группах */
+  .btn-group {
+    flex-wrap: wrap;
+  }
+
+  .btn-group .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Улучшаем отображение навигации */
+  .navbar-nav {
+    flex-direction: column;
+  }
+
+  .navbar-nav .nav-link {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Адаптируем dropdown меню */
+  .dropdown-menu {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Улучшаем отображение карточек в сетке */
+  .row.g-4 > * {
+    margin-bottom: 1rem;
+  }
+
+  /* Адаптируем padding контейнеров */
+  .py-4 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  .px-5 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Улучшаем отображение иконок в карточках */
+  .fs-2 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Адаптируем отступы между элементами */
+  .mb-4 {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .mb-3 {
+    margin-bottom: 1rem !important;
+  }
+
+  /* Улучшаем читаемость текста */
+  .small {
+    font-size: 0.8rem;
+  }
+
+  /* Адаптируем бейджи */
+  .badge.fs-6 {
+    font-size: 0.75rem !important;
+  }
+
+  /* Адаптируем модальные окна CardGrid */
+  .modal-dialog {
+    width: calc(100% - 1rem) !important;
+    max-width: calc(100% - 1rem) !important;
+  }
+
+  /* Улучшаем отображение изображений в вопросах */
+  .img-thumbnail {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Адаптируем формы регистрации и входа */
+  .card.shadow-lg {
+    margin: 1rem 0;
+  }
+
+  .card-body.p-4 {
+    padding: 1.5rem !important;
+  }
+
+  /* Улучшаем отображение кнопок в формах */
+  .btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  /* Адаптируем контейнеры на мобильных */
+  .container-fluid.px-3 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Улучшаем отображение карточек в сетке */
+  .row.g-3 > *,
+  .row.g-4 > * {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Адаптируем навигацию по страницам */
+  .d-flex.justify-content-between.align-items-center {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Улучшаем отображение текста в вопросах */
+  .card-title.fw-bold {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  /* Адаптируем изображения в карточках */
+  .img-fluid {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Улучшаем отображение характеристик вина на мобильных */
+  .wine-characteristics-mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .wine-image-mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Адаптируем кнопки навигации по характеристикам */
+  .btn-outline-primary {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Улучшаем отображение модальных окон CardGrid на мобильных */
+  .modal-content {
+    border-radius: 0 !important;
+  }
+
+  /* Адаптируем заголовки в модальных окнах */
+  .modal-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .modal-header .fs-3 {
+    font-size: 1.5rem !important;
+  }
+
+  /* Улучшаем отображение контента в модальных окнах */
+  .modal-body {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+
+  /* Адаптируем кнопки в модальных окнах */
+  .modal-footer {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0.25rem;
+  }
+
+  /* Улучшаем отображение карточек в сетке на мобильных */
+  .row.g-3 .col-12.col-sm-6.col-lg-4 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Адаптируем навигацию по страницам */
+  .d-flex.justify-content-between.align-items-center button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Улучшаем отображение текста в карточках */
+  .card-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  /* Адаптируем иконки в карточках */
+  .fs-2 {
+    font-size: 1.5rem !important;
+  }
+
+  /* Улучшаем отображение бейджей в карточках */
+  .badge.text-wrap {
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  /* Адаптируем формы на мобильных */
+  .form-control-lg {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Улучшаем отображение таблиц на мобильных */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Адаптируем списки на мобильных */
+  .list-group {
+    font-size: 0.9rem;
+  }
+
+  /* Улучшаем отображение календаря */
+  .react-calendar__navigation {
+    margin-bottom: 0.5rem;
+  }
+
+  .react-calendar__month-view__weekdays {
+    font-size: 0.75rem;
+  }
+
+  /* Адаптируем карточки статистики */
+  .card-body.py-3 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  /* Улучшаем отображение уведомлений */
+  .alert {
+    font-size: 0.9rem;
+  }
+
+  .alert-heading {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Адаптируем кнопки в уведомлениях */
+  .alert .btn {
+    margin-top: 0.5rem;
+  }
+
+  /* Улучшаем отображение навигации */
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+
+  .navbar-brand {
+    font-size: 1rem;
+  }
+
+  /* Адаптируем dropdown меню */
+  .dropdown-menu {
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  /* Улучшаем отображение карточек в профиле */
+  .card.h-100 {
+    min-height: auto;
+  }
+
+  /* Адаптируем sidebar на мобильных */
+  .d-flex.flex-row.flex-md-column {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Улучшаем отображение текста в профиле */
+  .lead {
+    font-size: 0.95rem;
+  }
+
+  /* Адаптируем кнопки действий */
+  .btn-group-vertical .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Улучшаем отображение изображений */
+  img.img-fluid {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Адаптируем прогресс-бары */
+  .progress {
+    height: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Улучшаем отображение спиннеров */
+  .spinner-border {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+/* Дополнительные стили для очень маленьких экранов (до 400px) */
+@media (max-width: 400px) {
+  .display-3 {
+    font-size: 1.5rem !important;
+  }
+
+  .display-4 {
+    font-size: 1.5rem !important;
+  }
+
+  .display-5 {
+    font-size: 1.25rem !important;
+  }
+
+  .h1, h1 {
+    font-size: 1.5rem;
+  }
+
+  .h2, h2 {
+    font-size: 1.25rem;
+  }
+
+  .h3, h3 {
+    font-size: 1.1rem;
+  }
+
+  .h4, h4 {
+    font-size: 1rem;
+  }
+
+  .h5, h5 {
+    font-size: 0.95rem;
+  }
+
+  .card-body {
+    padding: 0.75rem;
+  }
+
+  .btn {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .btn-lg {
+    font-size: 0.95rem;
+    padding: 0.625rem 1.25rem;
+  }
+
+  .modal-dialog {
+    margin: 0.25rem;
+  }
+
+  .modal-body {
+    padding: 0.75rem;
+  }
+
+  .navbar-brand {
+    font-size: 0.9rem;
+  }
+}

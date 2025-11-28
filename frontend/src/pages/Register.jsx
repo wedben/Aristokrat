@@ -8,6 +8,8 @@ export default function Register() {
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [hint, setHint] = useState("");
   const [ok, setOk] = useState(false);
@@ -23,6 +25,8 @@ export default function Register() {
         last_name: lastName,
         password,
         password_confirm: password2,
+        phone: phone || null,
+        address: address || null,
       });
       setOk(true);
       setHint("");
@@ -63,7 +67,7 @@ export default function Register() {
   };
 
   return (
-    <div className="container-fluid vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div className="container-fluid vh-100 d-flex align-items-center justify-content-center bg-light px-3">
       <div className="row w-100 justify-content-center">
         <div className="col-12 col-md-8 col-lg-6">
           <div className="text-center mb-4">
@@ -123,6 +127,34 @@ export default function Register() {
                   </div>
                   
                   <div className="col-md-6">
+                    <label htmlFor="phone" className="form-label fw-semibold">
+                      📱 Номер телефона
+                    </label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="form-control"
+                      placeholder="+7 (999) 123-45-67"
+                    />
+                  </div>
+                  
+                  <div className="col-12">
+                    <label htmlFor="address" className="form-label fw-semibold">
+                      🏠 Адрес проживания
+                    </label>
+                    <input
+                      id="address"
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="form-control"
+                      placeholder="Введите ваш адрес проживания"
+                    />
+                  </div>
+                  
+                  <div className="col-md-6">
                     <label htmlFor="password" className="form-label fw-semibold">
                       🔒 Пароль
                     </label>
@@ -137,7 +169,7 @@ export default function Register() {
                     />
                   </div>
                   
-                  <div className="col-12">
+                  <div className="col-md-6">
                     <label htmlFor="password2" className="form-label fw-semibold">
                       🔒 Повторите пароль
                     </label>

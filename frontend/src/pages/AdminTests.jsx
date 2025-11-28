@@ -25,6 +25,8 @@ export default function AdminTests() {
     description: '',
     image_path: '',
     max_errors_allowed: 0,
+    questions_per_test: 0,
+    time_limit: null,
     questions: [
       {
         text: '',
@@ -41,6 +43,24 @@ export default function AdminTests() {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [questionImages, setQuestionImages] = useState({});
+
+  // База вопросов для текущего теста
+  const [questionPool, setQuestionPool] = useState([]);
+  const [loadingPool, setLoadingPool] = useState(false);
+  const [showPoolModal, setShowPoolModal] = useState(false);
+  const [showQuestionPoolModal, setShowQuestionPoolModal] = useState(false);
+  const [editingPoolQuestion, setEditingPoolQuestion] = useState(null);
+  const [currentTestIdForPool, setCurrentTestIdForPool] = useState(null);
+  const [questionPoolFormData, setQuestionPoolFormData] = useState({
+    text: '',
+    image_path: '',
+    answers: [
+      { text: '', is_correct: false },
+      { text: '', is_correct: false }
+    ]
+  });
+  const [questionPoolImageFile, setQuestionPoolImageFile] = useState(null);
+  const [questionPoolImagePreview, setQuestionPoolImagePreview] = useState(null);
 
   useEffect(() => {
     checkAuthAndFetchTests();
@@ -73,6 +93,20 @@ export default function AdminTests() {
       console.error('Error fetching tests:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchQuestionPool = async (testId) => {
+    if (!testId) return;
+    try {
+      setLoadingPool(true);
+      const response = await api.get(`/tests/${testId}/questions/pool`);
+      setQuestionPool(response.data);
+    } catch (err) {
+      console.error('Error fetching question pool:', err);
+      showError('Ошибка загрузки базы вопросов');
+    } finally {
+      setLoadingPool(false);
     }
   };
 
@@ -122,25 +156,7 @@ export default function AdminTests() {
       errors.description = 'Описание обязательно для заполнения';
     }
 
-    // Проверка вопросов
-    if (formData.questions.length === 0) {
-      errors.questions = 'Добавьте хотя бы один вопрос';
-    }
-
-    formData.questions.forEach((question, qIndex) => {
-      if (!question.text.trim()) {
-        errors[`question_${qIndex}_text`] = 'Текст вопроса обязателен';
-      }
-      
-      const correctAnswers = question.answers.filter(answer => answer.is_correct);
-      if (correctAnswers.length === 0) {
-        errors[`question_${qIndex}_correct`] = 'Выберите хотя бы один правильный ответ';
-      }
-      
-      if (question.answers.length < 2) {
-        errors[`question_${qIndex}_answers`] = 'Добавьте минимум 2 варианта ответа';
-      }
-    });
+    // Вопросы теперь добавляются только через базу вопросов
 
     // Проверка URL изображения если указан
     if (formData.image_path && !isValidUrl(formData.image_path)) {
@@ -171,11 +187,19 @@ export default function AdminTests() {
     setFormErrors({});
     
     try {
+      // Вопросы теперь управляются через базу вопросов отдельно
+      // При обновлении теста не отправляем questions, чтобы не удалить существующие вопросы
       if (editingTest) {
-        await api.put(`/tests/${editingTest.id}`, formData);
+        const { questions, ...testData } = formData; // Исключаем questions при обновлении
+        await api.put(`/tests/${editingTest.id}`, testData);
         setShowEditModal(false);
       } else {
-        await api.post('/tests/', formData);
+        // При создании нового теста отправляем пустой массив questions
+        const testData = {
+          ...formData,
+          questions: []
+        };
+        await api.post('/tests/', testData);
         setShowCreateModal(false);
       }
       setEditingTest(null);
@@ -218,36 +242,20 @@ export default function AdminTests() {
 
   const handleEdit = (test) => {
     setEditingTest(test);
-    const questions = test.questions || [
-      {
-        text: '',
-        image_path: '',
-        answers: [
-          { text: '', is_correct: false },
-          { text: '', is_correct: false }
-        ]
-      }
-    ];
     
     setFormData({
       title: test.title || '',
       description: test.description || '',
       image_path: test.image_path || '',
       max_errors_allowed: test.max_errors_allowed || 0,
-      questions: questions
+      questions_per_test: test.questions_per_test || 0,
+      time_limit: test.time_limit || null,
+      questions: []  // Вопросы теперь только в базе вопросов
     });
-    
-    // Устанавливаем превью изображений для вопросов
-    const questionImagePreviews = {};
-    questions.forEach((question, index) => {
-      if (question.image_path) {
-        questionImagePreviews[index] = question.image_path;
-      }
-    });
-    setQuestionImages(questionImagePreviews);
     
     setImagePreview(test.image_path || null);
     setImageFile(null);
+    setQuestionImages({});
     setShowEditModal(true);
   };
 
@@ -310,6 +318,7 @@ export default function AdminTests() {
       description: '',
       image_path: '',
       max_errors_allowed: 0,
+      questions_per_test: 0,
       questions: [
         {
           text: '',
@@ -329,6 +338,148 @@ export default function AdminTests() {
     setImageFile(null);
     setImagePreview(null);
     setQuestionImages({});
+  };
+
+  // Функции для работы с базой вопросов
+  const handleCreatePoolQuestion = async () => {
+    if (!currentTestIdForPool) return;
+    try {
+      // Создаем вопрос без изображения
+      const response = await api.post(`/tests/${currentTestIdForPool}/questions/pool`, questionPoolFormData);
+      const questionId = response.data.id;
+      
+      // Загружаем изображение если оно есть
+      if (questionPoolImageFile) {
+        const formData = new FormData();
+        formData.append('file', questionPoolImageFile);
+        await api.post(`/tests/${currentTestIdForPool}/questions/pool/${questionId}/upload-image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+      
+      showSuccess('Вопрос добавлен в базу');
+      fetchQuestionPool(currentTestIdForPool);
+      setQuestionPoolFormData({
+        text: '',
+        image_path: '',
+        answers: [
+          { text: '', is_correct: false },
+          { text: '', is_correct: false }
+        ]
+      });
+      setQuestionPoolImageFile(null);
+      setQuestionPoolImagePreview(null);
+      setShowQuestionPoolModal(false);
+      setEditingPoolQuestion(null);
+    } catch (err) {
+      console.error('Error creating pool question:', err);
+      showError('Ошибка при создании вопроса');
+    }
+  };
+
+  const handleUpdatePoolQuestion = async () => {
+    if (!currentTestIdForPool || !editingPoolQuestion) return;
+    try {
+      // Обновляем вопрос
+      await api.put(`/tests/${currentTestIdForPool}/questions/pool/${editingPoolQuestion.id}`, questionPoolFormData);
+      
+      // Загружаем изображение если оно есть
+      if (questionPoolImageFile) {
+        const formData = new FormData();
+        formData.append('file', questionPoolImageFile);
+        await api.post(`/tests/${currentTestIdForPool}/questions/pool/${editingPoolQuestion.id}/upload-image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+      
+      showSuccess('Вопрос обновлен');
+      fetchQuestionPool(currentTestIdForPool);
+      setQuestionPoolFormData({
+        text: '',
+        image_path: '',
+        answers: [
+          { text: '', is_correct: false },
+          { text: '', is_correct: false }
+        ]
+      });
+      setQuestionPoolImageFile(null);
+      setQuestionPoolImagePreview(null);
+      setShowQuestionPoolModal(false);
+      setEditingPoolQuestion(null);
+    } catch (err) {
+      console.error('Error updating pool question:', err);
+      showError('Ошибка при обновлении вопроса');
+    }
+  };
+
+  const handleDeletePoolQuestion = async (id) => {
+    if (!currentTestIdForPool) return;
+    const confirmed = await confirm({
+      title: 'Удаление вопроса',
+      message: 'Вы уверены, что хотите удалить этот вопрос из базы?',
+      confirmText: 'Удалить',
+      cancelText: 'Отмена',
+      type: 'danger'
+    });
+
+    if (confirmed) {
+      try {
+        await api.delete(`/tests/${currentTestIdForPool}/questions/pool/${id}`);
+        showSuccess('Вопрос удален из базы');
+        fetchQuestionPool(currentTestIdForPool);
+      } catch (err) {
+        console.error('Error deleting pool question:', err);
+        showError('Ошибка при удалении вопроса');
+      }
+    }
+  };
+
+  const handleEditPoolQuestion = (question) => {
+    setEditingPoolQuestion(question);
+    setQuestionPoolFormData({
+      text: question.text || '',
+      image_path: question.image_path || '',
+      answers: question.answers.map(a => ({
+        text: a.text || '',
+        is_correct: a.is_correct || false
+      }))
+    });
+    setQuestionPoolImageFile(null);
+    setQuestionPoolImagePreview(question.image_path || null);
+    setShowQuestionPoolModal(true);
+  };
+
+  const handleAddPoolQuestion = () => {
+    setEditingPoolQuestion(null);
+    setQuestionPoolFormData({
+      text: '',
+      image_path: '',
+      answers: [
+        { text: '', is_correct: false },
+        { text: '', is_correct: false }
+      ]
+    });
+    setQuestionPoolImageFile(null);
+    setQuestionPoolImagePreview(null);
+    setShowQuestionPoolModal(true);
+  };
+
+  const handleQuestionPoolImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setQuestionPoolImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setQuestionPoolImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleOpenPoolModal = (testId) => {
+    setCurrentTestIdForPool(testId);
+    setShowPoolModal(true);
+    fetchQuestionPool(testId);
   };
 
   const addQuestion = () => {
@@ -407,7 +558,7 @@ export default function AdminTests() {
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center">
             <div>
-              <h1 className="display-5 fw-bold text-success mb-2">
+              <h1 className="display-5 fw-bold text-primary mb-2">
                 📝 Управление тестами
               </h1>
               <p className="lead text-muted">Создавайте и редактируйте тесты для проверки знаний</p>
@@ -424,7 +575,7 @@ export default function AdminTests() {
               </button>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="btn btn-success btn-lg"
+                className="btn btn-primary btn-lg"
               >
                 ➕ Создать тест
               </button>
@@ -444,17 +595,15 @@ export default function AdminTests() {
         </div>
       )}
 
-      {/* Панель поиска и фильтров */}
+      {/* Панель поиска/фильтров (новый дизайн) */}
       <div className="row mb-4">
         <div className="col-12">
-          <div className="card shadow-sm">
+          <div className="card shadow-sm border-0">
             <div className="card-body">
-              <div className="row g-3">
-                {/* Поиск */}
-                <div className="col-md-6">
-                  <label htmlFor="search" className="form-label fw-semibold">
-                    🔍 Поиск
-                  </label>
+              <div className="d-flex flex-wrap gap-2 align-items-center">
+                <div className="flex-grow-1">
+                  <div className="input-group">
+                    <span className="input-group-text bg-white">🔍</span>
                   <input
                     type="text"
                     id="search"
@@ -464,12 +613,8 @@ export default function AdminTests() {
                     className="form-control"
                   />
                 </div>
-
-                {/* Сортировка */}
-                <div className="col-md-3">
-                  <label htmlFor="sortBy" className="form-label fw-semibold">
-                    📊 Сортировка
-                  </label>
+                </div>
+                <div>
                   <select
                     id="sortBy"
                     value={sortBy}
@@ -480,21 +625,21 @@ export default function AdminTests() {
                     <option value="id">По ID</option>
                   </select>
                 </div>
-
-                {/* Порядок сортировки */}
-                <div className="col-md-3">
-                  <label htmlFor="sortOrder" className="form-label fw-semibold">
-                    🔄 Порядок
-                  </label>
+                <div>
                   <select
                     id="sortOrder"
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value)}
                     className="form-select"
                   >
-                    <option value="asc">По возрастанию</option>
-                    <option value="desc">По убыванию</option>
+                    <option value="asc">↑ По возрастанию</option>
+                    <option value="desc">↓ По убыванию</option>
                   </select>
+                </div>
+                <div className="ms-auto">
+                  <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
+                    ➕ Новый тест
+                  </button>
                 </div>
               </div>
             </div>
@@ -539,60 +684,38 @@ export default function AdminTests() {
                   </button>
                 </div>
               ) : (
-                <div className="row g-4">
+                <div className="row g-3 g-md-4">
                   {filteredAndSortedTests().map((test) => (
-                    <div key={test.id} className="col-6 col-sm-4 col-md-3 col-lg-2">
-                      <div className="card h-100 shadow-sm" style={{ aspectRatio: '1/1.3' }}>
-                        {/* Изображение */}
-                        <div className="position-relative" style={{ height: '55%' }}>
-                          {test.image_path ? (
-                            <img
-                              src={test.image_path}
-                              alt={test.title}
-                              className="card-img-top h-100 object-fit-cover"
-                            />
-                          ) : (
-                            <div className="card-img-top h-100 bg-light d-flex align-items-center justify-content-center">
-                              <div className="display-4 text-muted opacity-50">
-                                📝
-                              </div>
-                            </div>
-                          )}
-                          <span className="position-absolute top-0 start-0 m-1 badge bg-success" style={{ fontSize: '0.65rem' }}>
-                            📝 Тест
-                          </span>
+                    <div key={test.id} className="col-12 col-sm-6 col-lg-4">
+                      <div className="card border-0 shadow-sm h-100">
+                        <div className="card-body p-3 p-md-4 text-center">
+                          <h5 className="card-title mb-3">{test.title}</h5>
+                          <p className="card-text text-muted mb-4">{test.description || 'Описание теста отсутствует'}</p>
+                          <div className="d-flex justify-content-center gap-2 mb-3 flex-wrap">
+                            <span className="badge bg-primary">{test.questions?.length || 0} вопросов</span>
+                            {test.questions_per_test > 0 && (
+                              <span className="badge bg-info">Случайно: {test.questions_per_test}</span>
+                            )}
                         </div>
-
-                        {/* Информация */}
-                        <div className="card-body p-2 d-flex flex-column" style={{ height: '45%' }}>
-                          <h6 className="card-title text-center mb-1 text-truncate" style={{ fontSize: '0.8rem', fontWeight: '600' }}>
-                            {test.title}
-                          </h6>
-                          <p className="text-center small text-muted mb-2">ID: #{test.id}</p>
-                          <div className="text-center mb-2">
-                            <span className="badge bg-success" style={{ fontSize: '0.65rem' }}>
-                              {test.questions?.length || 0} вопросов
-                            </span>
-                          </div>
-                          
-                          {/* Действия */}
-                          <div className="mt-auto">
-                            <div className="d-grid gap-1">
+                          <div className="d-flex flex-column flex-sm-row gap-2 justify-content-center">
                               <button
+                              className="btn btn-sm btn-outline-primary flex-fill"
                                 onClick={() => handleEdit(test)}
-                                className="btn btn-outline-primary btn-sm"
-                                style={{ fontSize: '0.65rem', padding: '0.15rem 0.3rem' }}
                               >
-                                ✏️ Редактировать
+                              Редактировать
                               </button>
                               <button
+                              className="btn btn-sm btn-outline-info flex-fill"
+                              onClick={() => handleOpenPoolModal(test.id)}
+                            >
+                              База вопросов
+                            </button>
+                            <button 
+                              className="btn btn-sm btn-outline-danger flex-fill"
                                 onClick={() => handleDelete(test.id)}
-                                className="btn btn-outline-danger btn-sm"
-                                style={{ fontSize: '0.65rem', padding: '0.15rem 0.3rem' }}
                               >
-                                🗑️ Удалить
+                              Удалить
                               </button>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -714,181 +837,55 @@ export default function AdminTests() {
                       <label htmlFor="max_errors_allowed" className="form-label fw-semibold">
                         ⚠️ Допустимые ошибки
                       </label>
-                      <div className="mb-2">
                         <input
-                          type="range"
-                          className="form-range"
+                        type="number"
+                        id="max_errors_allowed"
                           min="0"
                           max="10"
                           value={formData.max_errors_allowed}
-                          onChange={(e) => setFormData({ ...formData, max_errors_allowed: parseInt(e.target.value) })}
-                          id="max_errors_allowed"
-                        />
-                        <div className="d-flex justify-content-between">
-                          <small className="text-muted">0</small>
-                          <small className="text-muted">10</small>
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <span className="badge bg-warning fs-6">
-                          {formData.max_errors_allowed} ошибок
-                        </span>
-                      </div>
-                      <div className="form-text text-center">
+                        onChange={(e) => setFormData({ ...formData, max_errors_allowed: parseInt(e.target.value) || 0 })}
+                        className="form-control"
+                        placeholder="0"
+                      />
+                      <div className="form-text">
                         Максимальное количество ошибок для прохождения теста
                       </div>
                     </div>
                   </div>
 
-                  {/* Вопросы */}
+                  {/* База вопросов */}
                   <div className="mt-4">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h6 className="fw-bold mb-0">❓ Вопросы</h6>
-                      <button
-                        type="button"
-                        onClick={addQuestion}
-                        className="btn btn-success btn-sm"
-                      >
-                        ➕ Добавить вопрос
-                      </button>
-                    </div>
-
-                    {formData.questions.map((question, questionIndex) => (
-                      <div key={questionIndex} className="card border mb-3">
-                        <div className="card-header bg-light">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <h6 className="mb-0">Вопрос {questionIndex + 1}</h6>
-                            {formData.questions.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeQuestion(questionIndex)}
-                                className="btn btn-outline-danger btn-sm"
-                              >
-                                🗑️ Удалить
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="card-body">
                           <div className="mb-3">
-                            <label className="form-label fw-semibold">
-                              Текст вопроса *
+                      <label htmlFor="questions_per_test" className="form-label fw-semibold">
+                        Количество вопросов
                             </label>
                             <input
-                              type="text"
-                              required
-                              value={question.text}
-                              onChange={(e) => updateQuestion(questionIndex, 'text', e.target.value)}
-                              className={`form-control ${formErrors[`question_${questionIndex}_text`] ? 'is-invalid' : ''}`}
-                              placeholder="Введите текст вопроса"
-                            />
-                            {formErrors[`question_${questionIndex}_text`] && (
-                              <div className="invalid-feedback">
-                                {formErrors[`question_${questionIndex}_text`]}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold">
-                              🖼️ Изображение к вопросу
-                            </label>
-                            <div className="mb-2">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleQuestionImageChange(questionIndex, e)}
+                        type="number"
+                        id="questions_per_test"
+                        min="0"
+                        value={formData.questions_per_test || 0}
+                        onChange={(e) => setFormData({ ...formData, questions_per_test: parseInt(e.target.value) || 0 })}
                                 className="form-control"
+                        placeholder="0"
                               />
-                              <div className="form-text">Или введите URL изображения:</div>
-                            </div>
-                            <input
-                              type="url"
-                              value={question.image_path || ''}
-                              onChange={(e) => updateQuestion(questionIndex, 'image_path', e.target.value)}
-                              className="form-control"
-                              placeholder="https://example.com/image.jpg"
-                            />
-                            {questionImages[questionIndex] && (
-                              <div className="mt-2">
-                                <img
-                                  src={questionImages[questionIndex]}
-                                  alt="Preview"
-                                  className="img-thumbnail"
-                                  style={{ maxWidth: '200px', maxHeight: '150px' }}
-                                />
-                              </div>
-                            )}
-                          </div>
-
-                          <div>
-                            <div className="d-flex justify-content-between align-items-center mb-2">
-                              <div>
-                                <label className="form-label fw-semibold mb-0">
-                                  Варианты ответов
-                                </label>
-                                <div className="form-text small">
-                                  💡 Можно выбрать несколько правильных ответов
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => addAnswer(questionIndex)}
-                                className="btn btn-outline-primary btn-sm"
-                              >
-                                ➕ Добавить ответ
-                              </button>
-                            </div>
-
-                            {question.answers.map((answer, answerIndex) => (
-                              <div key={answerIndex} className="d-flex align-items-center gap-2 mb-2">
-                                <input
-                                  type="text"
-                                  value={answer.text}
-                                  onChange={(e) => updateAnswer(questionIndex, answerIndex, 'text', e.target.value)}
-                                  className="form-control"
-                                  placeholder="Вариант ответа"
-                                />
-                                <div className="form-check">
-                                  <input
-                                    type="checkbox"
-                                    checked={answer.is_correct}
-                                    onChange={(e) => {
-                                      const newQuestions = [...formData.questions];
-                                      newQuestions[questionIndex].answers[answerIndex].is_correct = e.target.checked;
-                                      setFormData({ ...formData, questions: newQuestions });
-                                    }}
-                                    className="form-check-input"
-                                  />
-                                  <label className="form-check-label small">
-                                    Правильный
-                                  </label>
-                                </div>
-                                {question.answers.length > 2 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeAnswer(questionIndex, answerIndex)}
-                                    className="btn btn-outline-danger btn-sm"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                            {formErrors[`question_${questionIndex}_correct`] && (
-                              <div className="text-danger small">
-                                {formErrors[`question_${questionIndex}_correct`]}
-                              </div>
-                            )}
-                            {formErrors[`question_${questionIndex}_answers`] && (
-                              <div className="text-danger small">
-                                {formErrors[`question_${questionIndex}_answers`]}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                      <small className="text-muted">0 = все вопросы</small>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label htmlFor="time_limit" className="form-label fw-semibold">
+                        ⏱️ Ограничение по времени (секунды)
+                      </label>
+                      <input
+                        type="number"
+                        id="time_limit"
+                        min="0"
+                        value={formData.time_limit || ''}
+                        onChange={(e) => setFormData({ ...formData, time_limit: e.target.value ? parseInt(e.target.value) : null })}
+                        className="form-control"
+                        placeholder="Без ограничения"
+                      />
+                      <small className="text-muted">Оставьте пустым для теста без ограничения по времени</small>
+                    </div>
                   </div>
                 </div>
                 <div className="modal-footer">
@@ -902,7 +899,7 @@ export default function AdminTests() {
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-success"
+                    className="btn btn-primary"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -943,347 +940,122 @@ export default function AdminTests() {
                     </div>
                   )}
 
-                  {/* Предварительный просмотр теста */}
-                  <div className="row mb-4">
-                    <div className="col-12">
-                      <h6 className="fw-bold mb-3">👁️ Предварительный просмотр:</h6>
-                      <div className="card border">
-                        <div className="row g-0">
-                          <div className="col-md-4">
-                            <div className="position-relative" style={{ height: '150px' }}>
+                  {/* Новый макет: превью слева, форма справа */}
+                  <div className="row g-4 mb-3">
+                    {/* Превью */}
+                    <div className="col-lg-5">
+                      <div className="card shadow-sm border-0">
+                        <div className="card-header bg-white border-0">
+                          <h6 className="mb-0 fw-bold">👁️ Предпросмотр</h6>
+                        </div>
+                        <div className="card-body">
+                          <div className="position-relative overflow-hidden mb-3" style={{ height: '180px', background: '#f8f9fa' }}>
                               {formData.image_path ? (
-                                <img
-                                  src={formData.image_path}
-                                  alt="Preview"
-                                  className="img-fluid h-100 w-100 object-fit-cover"
-                                />
-                              ) : (
-                                <div className="h-100 bg-light d-flex align-items-center justify-content-center">
-                                  <div className="display-4 text-muted opacity-50">📝</div>
-                                </div>
-                              )}
-                              <span className="position-absolute top-0 start-0 m-2 badge bg-success">
-                                📝 Тест
-                              </span>
+                              <img src={formData.image_path} alt="Preview" className="w-100 h-100" style={{ objectFit: 'cover' }} />
+                            ) : (
+                              <div className="w-100 h-100 d-flex align-items-center justify-content-center text-muted display-6">📝</div>
+                            )}
+                            <span className="position-absolute top-0 start-0 m-2 badge bg-primary">Тест</span>
                             </div>
-                          </div>
-                          <div className="col-md-8">
-                            <div className="card-body">
-                              <h5 className="card-title">{formData.title || 'Название теста'}</h5>
-                              <p className="card-text">{formData.description || 'Описание теста'}</p>
-                              <p className="card-text">
-                                <small className="text-muted">
-                                  {formData.questions.length} вопросов
-                                </small>
-                                <br />
-                                <small className="text-muted">
-                                  Допустимо ошибок: {formData.max_errors_allowed}
-                                </small>
-                              </p>
+                          <h5 className="fw-bold mb-1">{formData.title || 'Название теста'}</h5>
+                          <p className="text-muted mb-2">{formData.description || 'Описание теста'}</p>
+                          <div className="d-flex gap-2 flex-wrap">
+                            <span className="badge bg-primary">{formData.questions.length} вопросов</span>
+                            <span className="badge bg-warning text-dark">Допустимо ошибок: {formData.max_errors_allowed}</span>
                             </div>
                           </div>
                         </div>
                       </div>
                       
-                      {/* Предварительный просмотр вопросов */}
-                      {formData.questions.length > 0 && (
-                        <div className="mt-3">
-                          <h6 className="fw-bold mb-2">📋 Предварительный просмотр вопросов:</h6>
-                          <div className="row g-2">
-                            {formData.questions.map((question, qIndex) => (
-                              <div key={qIndex} className="col-12 col-md-6">
-                                <div className="card border">
-                                  <div className="card-body p-2">
-                                    <div className="d-flex align-items-start gap-2">
-                                      {question.image_path && (
-                                        <img
-                                          src={question.image_path}
-                                          alt="Question"
-                                          className="img-thumbnail"
-                                          style={{ width: '60px', height: '60px', objectFit: 'cover' }}
-                                        />
-                                      )}
-                                      <div className="flex-grow-1">
-                                        <h6 className="card-title mb-1" style={{ fontSize: '0.8rem' }}>
-                                          Вопрос {qIndex + 1}
-                                        </h6>
-                                        <p className="card-text small mb-1">
-                                          {question.text || 'Текст вопроса...'}
-                                        </p>
-                                        <small className="text-muted">
-                                          {question.answers?.length || 0} вариантов ответа
-                                          {question.answers && (
-                                            <span className="ms-2">
-                                              ({question.answers.filter(a => a.is_correct).length} правильных)
-                                            </span>
-                                          )}
-                                        </small>
+                    {/* Форма */}
+                    <div className="col-lg-7">
+                      <div className="card shadow-sm border-0">
+                        <div className="card-header bg-white border-0">
+                          <h6 className="mb-0 fw-bold">🛠️ Параметры теста</h6>
                                       </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="row g-3">
-                    <div className="col-md-6">
-                      <label htmlFor="edit_title" className="form-label fw-semibold">
-                        📝 Название теста *
-                      </label>
-                      <input
-                        type="text"
-                        id="edit_title"
-                        required
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        className={`form-control ${formErrors.title ? 'is-invalid' : ''}`}
-                        placeholder="Введите название теста"
-                      />
-                      {formErrors.title && (
-                        <div className="invalid-feedback">
-                          {formErrors.title}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="col-md-6">
-                      <label htmlFor="edit_image_path" className="form-label fw-semibold">
-                        🖼️ Изображение
-                      </label>
-                      <div className="mb-2">
-                        <input
-                          type="file"
-                          id="edit_image_file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="form-control"
-                        />
-                        <div className="form-text">Или введите URL изображения:</div>
-                      </div>
-                      <input
-                        type="url"
-                        id="edit_image_path"
-                        value={formData.image_path}
-                        onChange={(e) => {
-                          setFormData({ ...formData, image_path: e.target.value });
-                          setImagePreview(e.target.value);
-                        }}
-                        className={`form-control ${formErrors.image_path ? 'is-invalid' : ''}`}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                      {formErrors.image_path && (
-                        <div className="invalid-feedback">
-                          {formErrors.image_path}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="col-md-8">
-                      <label htmlFor="edit_description" className="form-label fw-semibold">
-                        📄 Описание теста *
-                      </label>
-                      <textarea
-                        id="edit_description"
-                        required
-                        rows={3}
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        className={`form-control ${formErrors.description ? 'is-invalid' : ''}`}
-                        placeholder="Описание теста"
-                      />
-                      {formErrors.description && (
-                        <div className="invalid-feedback">
-                          {formErrors.description}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="col-md-4">
-                      <label htmlFor="edit_max_errors_allowed" className="form-label fw-semibold">
-                        ⚠️ Допустимые ошибки
-                      </label>
-                      <div className="mb-2">
-                        <input
-                          type="range"
-                          className="form-range"
-                          min="0"
-                          max="10"
-                          value={formData.max_errors_allowed}
-                          onChange={(e) => setFormData({ ...formData, max_errors_allowed: parseInt(e.target.value) })}
-                          id="edit_max_errors_allowed"
-                        />
-                        <div className="d-flex justify-content-between">
-                          <small className="text-muted">0</small>
-                          <small className="text-muted">10</small>
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <span className="badge bg-warning fs-6">
-                          {formData.max_errors_allowed} ошибок
-                        </span>
-                      </div>
-                      <div className="form-text text-center">
-                        Максимальное количество ошибок для прохождения теста
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Вопросы */}
-                  <div className="mt-4">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h6 className="fw-bold mb-0">❓ Вопросы</h6>
-                      <button
-                        type="button"
-                        onClick={addQuestion}
-                        className="btn btn-success btn-sm"
-                      >
-                        ➕ Добавить вопрос
-                      </button>
-                    </div>
-
-                    {formData.questions.map((question, questionIndex) => (
-                      <div key={questionIndex} className="card border mb-3">
-                        <div className="card-header bg-light">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <h6 className="mb-0">Вопрос {questionIndex + 1}</h6>
-                            {formData.questions.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeQuestion(questionIndex)}
-                                className="btn btn-outline-danger btn-sm"
-                              >
-                                🗑️ Удалить
-                              </button>
-                            )}
-                          </div>
-                        </div>
                         <div className="card-body">
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold">
-                              Текст вопроса *
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={question.text}
-                              onChange={(e) => updateQuestion(questionIndex, 'text', e.target.value)}
-                              className={`form-control ${formErrors[`question_${questionIndex}_text`] ? 'is-invalid' : ''}`}
-                              placeholder="Введите текст вопроса"
-                            />
-                            {formErrors[`question_${questionIndex}_text`] && (
-                              <div className="invalid-feedback">
-                                {formErrors[`question_${questionIndex}_text`]}
-                              </div>
-                            )}
-                          </div>
+                          <div className="row g-3">
+                            <div className="col-12">
+                              <label htmlFor="edit_title" className="form-label fw-semibold">Название *</label>
+                              <input type="text" id="edit_title" required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className={`form-control ${formErrors.title ? 'is-invalid' : ''}`} placeholder="Введите название теста" />
+                              {formErrors.title && (<div className="invalid-feedback">{formErrors.title}</div>)}
+                                    </div>
 
-                          <div className="mb-3">
-                            <label className="form-label fw-semibold">
-                              🖼️ Изображение к вопросу
-                            </label>
-                            <div className="mb-2">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleQuestionImageChange(questionIndex, e)}
+                            <div className="col-12">
+                              <label htmlFor="edit_image_path" className="form-label fw-semibold">Изображение</label>
+                              <div className="mb-2">
+                                <input type="file" id="edit_image_file" accept="image/*" onChange={handleImageChange} className="form-control" />
+                                <div className="form-text">Или URL изображения:</div>
+                                  </div>
+                              <input type="url" id="edit_image_path" value={formData.image_path} onChange={(e) => { setFormData({ ...formData, image_path: e.target.value }); setImagePreview(e.target.value); }} className={`form-control ${formErrors.image_path ? 'is-invalid' : ''}`} placeholder="https://example.com/image.jpg" />
+                              {formErrors.image_path && (<div className="invalid-feedback">{formErrors.image_path}</div>)}
+                                </div>
+
+                            <div className="col-12">
+                              <label htmlFor="edit_description" className="form-label fw-semibold">Описание *</label>
+                              <textarea id="edit_description" required rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className={`form-control ${formErrors.description ? 'is-invalid' : ''}`} placeholder="Описание теста" />
+                              {formErrors.description && (<div className="invalid-feedback">{formErrors.description}</div>)}
+                  </div>
+
+                    <div className="col-md-6">
+                              <label htmlFor="edit_max_errors_allowed" className="form-label fw-semibold">
+                                ⚠️ Допустимые ошибки
+                      </label>
+                      <input
+                                type="number"
+                                id="edit_max_errors_allowed"
+                                min="0"
+                                max="10"
+                                value={formData.max_errors_allowed}
+                                onChange={(e) => setFormData({ ...formData, max_errors_allowed: parseInt(e.target.value) || 0 })}
                                 className="form-control"
+                                placeholder="0"
                               />
-                              <div className="form-text">Или введите URL изображения:</div>
-                            </div>
-                            <input
-                              type="url"
-                              value={question.image_path || ''}
-                              onChange={(e) => updateQuestion(questionIndex, 'image_path', e.target.value)}
-                              className="form-control"
-                              placeholder="https://example.com/image.jpg"
-                            />
-                            {questionImages[questionIndex] && (
-                              <div className="mt-2">
-                                <img
-                                  src={questionImages[questionIndex]}
-                                  alt="Preview"
-                                  className="img-thumbnail"
-                                  style={{ maxWidth: '200px', maxHeight: '150px' }}
-                                />
-                              </div>
-                            )}
-                          </div>
+                              <div className="form-text">
+                                Максимальное количество ошибок для прохождения теста
+                        </div>
+                    </div>
 
-                          <div>
-                            <div className="d-flex justify-content-between align-items-center mb-2">
-                              <div>
-                                <label className="form-label fw-semibold mb-0">
-                                  Варианты ответов
-                                </label>
-                                <div className="form-text small">
-                                  💡 Можно выбрать несколько правильных ответов
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => addAnswer(questionIndex)}
-                                className="btn btn-outline-primary btn-sm"
-                              >
-                                ➕ Добавить ответ
-                              </button>
+                    <div className="col-md-6">
+                              <label htmlFor="edit_questions_per_test" className="form-label fw-semibold">
+                                Количество вопросов
+                              </label>
+                              <input
+                                type="number"
+                                id="edit_questions_per_test"
+                                min="0"
+                                value={formData.questions_per_test || 0}
+                                onChange={(e) => setFormData({ ...formData, questions_per_test: parseInt(e.target.value) || 0 })}
+                                className="form-control"
+                                placeholder="0"
+                              />
+                              <small className="text-muted">0 = все вопросы</small>
                             </div>
-
-                            {question.answers.map((answer, answerIndex) => (
-                              <div key={answerIndex} className="d-flex align-items-center gap-2 mb-2">
-                                <input
-                                  type="text"
-                                  value={answer.text}
-                                  onChange={(e) => updateAnswer(questionIndex, answerIndex, 'text', e.target.value)}
-                                  className="form-control"
-                                  placeholder="Вариант ответа"
-                                />
-                                <div className="form-check">
-                                  <input
-                                    type="checkbox"
-                                    checked={answer.is_correct}
-                                    onChange={(e) => {
-                                      const newQuestions = [...formData.questions];
-                                      newQuestions[questionIndex].answers[answerIndex].is_correct = e.target.checked;
-                                      setFormData({ ...formData, questions: newQuestions });
-                                    }}
-                                    className="form-check-input"
-                                  />
-                                  <label className="form-check-label small">
-                                    Правильный
-                                  </label>
-                                </div>
-                                {question.answers.length > 2 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeAnswer(questionIndex, answerIndex)}
-                                    className="btn btn-outline-danger btn-sm"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                            {formErrors[`question_${questionIndex}_correct`] && (
-                              <div className="text-danger small">
-                                {formErrors[`question_${questionIndex}_correct`]}
-                              </div>
-                            )}
-                            {formErrors[`question_${questionIndex}_answers`] && (
-                              <div className="text-danger small">
-                                {formErrors[`question_${questionIndex}_answers`]}
-                              </div>
-                            )}
-                          </div>
+                            
+                            <div className="mb-3">
+                              <label htmlFor="edit_time_limit" className="form-label fw-semibold">
+                                ⏱️ Ограничение по времени (секунды)
+                              </label>
+                              <input
+                                type="number"
+                                id="edit_time_limit"
+                                min="0"
+                                value={formData.time_limit || ''}
+                                onChange={(e) => setFormData({ ...formData, time_limit: e.target.value ? parseInt(e.target.value) : null })}
+                                className="form-control"
+                                placeholder="Без ограничения"
+                              />
+                              <small className="text-muted">Оставьте пустым для теста без ограничения по времени</small>
+                              <div className="form-text">
+                                Если указано больше 0, при прохождении теста будет выбрано случайное количество вопросов из базы (без повторений). Если 0 - используются все вопросы из базы.
+                      </div>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                      </div>
                 <div className="modal-footer">
                   <button
                     type="button"
@@ -1295,7 +1067,7 @@ export default function AdminTests() {
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-success"
+                    className="btn btn-primary"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -1307,12 +1079,264 @@ export default function AdminTests() {
                       '💾 Сохранить изменения'
                     )}
                   </button>
-                </div>
+                      </div>
               </form>
+                    </div>
+                  </div>
+        </div>
+      )}
+
+      {/* Модальное окно управления базой вопросов */}
+      {showPoolModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-xl modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold">📚 База вопросов теста</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => {
+                    setShowPoolModal(false);
+                    setCurrentTestIdForPool(null);
+                  }}
+                ></button>
+              </div>
+              <div className="modal-body">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                  <p className="mb-0 text-muted">Всего вопросов в базе: {questionPool.length}</p>
+                      <button
+                        type="button"
+                    onClick={handleAddPoolQuestion}
+                    className="btn btn-primary btn-sm"
+                      >
+                        ➕ Добавить вопрос
+                      </button>
+                    </div>
+
+                {loadingPool ? (
+                  <div className="text-center py-5">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Загрузка...</span>
+                    </div>
+                  </div>
+                ) : questionPool.length === 0 ? (
+                  <div className="text-center py-5">
+                    <div className="display-1 mb-4 text-muted">📚</div>
+                    <h5 className="text-muted mb-3">База вопросов пуста</h5>
+                              <button
+                                type="button"
+                      onClick={handleAddPoolQuestion}
+                      className="btn btn-primary"
+                    >
+                      ➕ Добавить первый вопрос
+                    </button>
+                  </div>
+                ) : (
+                  <div className="row g-3">
+                    {questionPool.map((question) => (
+                      <div key={question.id} className="col-md-6">
+                        <div className="card border">
+                          <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <h6 className="mb-0">Вопрос #{question.id}</h6>
+                              <div className="d-flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditPoolQuestion(question)}
+                                  className="btn btn-outline-primary btn-sm"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePoolQuestion(question.id)}
+                                className="btn btn-outline-danger btn-sm"
+                              >
+                                  🗑️
+                              </button>
+                          </div>
+                        </div>
+                            <p className="mb-2">{question.text}</p>
+                            {question.image_path && (
+                              <img
+                                src={question.image_path.startsWith('http') || question.image_path.startsWith('/uploads') 
+                                  ? (question.image_path.startsWith('http') 
+                                      ? question.image_path 
+                                      : `${api.defaults.baseURL || 'http://localhost:8000'}${question.image_path}`)
+                                  : question.image_path}
+                                alt="Question"
+                                className="img-thumbnail mb-2"
+                                style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }}
+                              />
+                            )}
+                            <div className="small text-muted">
+                              Ответов: {question.answers?.length || 0}
+                          </div>
+                        </div>
+                        </div>
+                      </div>
+                    ))}
+                              </div>
+                            )}
+                          </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowPoolModal(false)}
+                >
+                  Закрыть
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Модальное окно создания/редактирования вопроса в базе */}
+      {showQuestionPoolModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title fw-bold">
+                  {editingPoolQuestion ? '✏️ Редактировать вопрос' : '➕ Добавить вопрос в базу'}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => {
+                    setShowQuestionPoolModal(false);
+                    setEditingPoolQuestion(null);
+                  }}
+                ></button>
+              </div>
+              <div className="modal-body">
+                          <div className="mb-3">
+                  <label className="form-label fw-semibold">Текст вопроса *</label>
+                  <textarea
+                                className="form-control"
+                    rows="3"
+                    value={questionPoolFormData.text}
+                    onChange={(e) => setQuestionPoolFormData({ ...questionPoolFormData, text: e.target.value })}
+                              placeholder="Введите текст вопроса"
+                            />
+                          </div>
+
+                          <div className="mb-3">
+                  <label className="form-label fw-semibold">Изображение</label>
+                            <div className="mb-2">
+                              <input
+                                type="file"
+                                accept="image/*"
+                      onChange={handleQuestionPoolImageChange}
+                                className="form-control"
+                              />
+                              <div className="form-text">Или введите URL изображения:</div>
+                            </div>
+                            <input
+                              type="url"
+                              className="form-control"
+                    value={questionPoolFormData.image_path}
+                    onChange={(e) => {
+                      setQuestionPoolFormData({ ...questionPoolFormData, image_path: e.target.value });
+                      setQuestionPoolImagePreview(e.target.value);
+                    }}
+                              placeholder="https://example.com/image.jpg"
+                            />
+                  {questionPoolImagePreview && (
+                              <div className="mt-2">
+                                <img
+                        src={questionPoolImagePreview}
+                                  alt="Preview"
+                                  className="img-thumbnail"
+                                  style={{ maxWidth: '200px', maxHeight: '150px' }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                    <label className="form-label fw-semibold mb-0">Ответы *</label>
+                              <button
+                                type="button"
+                      onClick={() => setQuestionPoolFormData({
+                        ...questionPoolFormData,
+                        answers: [...questionPoolFormData.answers, { text: '', is_correct: false }]
+                      })}
+                                className="btn btn-outline-primary btn-sm"
+                              >
+                                ➕ Добавить ответ
+                              </button>
+                            </div>
+                  {questionPoolFormData.answers.map((answer, answerIndex) => (
+                    <div key={answerIndex} className="mb-2 d-flex gap-2 align-items-center">
+                                <input
+                                  type="text"
+                                  className="form-control"
+                        value={answer.text}
+                        onChange={(e) => {
+                          const newAnswers = [...questionPoolFormData.answers];
+                          newAnswers[answerIndex].text = e.target.value;
+                          setQuestionPoolFormData({ ...questionPoolFormData, answers: newAnswers });
+                        }}
+                        placeholder="Текст ответа"
+                                />
+                                <div className="form-check">
+                                  <input
+                                    type="checkbox"
+                          className="form-check-input"
+                                    checked={answer.is_correct}
+                                    onChange={(e) => {
+                            const newAnswers = [...questionPoolFormData.answers];
+                            newAnswers[answerIndex].is_correct = e.target.checked;
+                            setQuestionPoolFormData({ ...questionPoolFormData, answers: newAnswers });
+                          }}
+                        />
+                        <label className="form-check-label">Правильный</label>
+                                </div>
+                      {questionPoolFormData.answers.length > 2 && (
+                                  <button
+                                    type="button"
+                          onClick={() => {
+                            const newAnswers = questionPoolFormData.answers.filter((_, i) => i !== answerIndex);
+                            setQuestionPoolFormData({ ...questionPoolFormData, answers: newAnswers });
+                          }}
+                                    className="btn btn-outline-danger btn-sm"
+                                  >
+                          🗑️
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                  onClick={() => {
+                    setShowQuestionPoolModal(false);
+                    setEditingPoolQuestion(null);
+                  }}
+                  >
+                    Отмена
+                  </button>
+                  <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={editingPoolQuestion ? handleUpdatePoolQuestion : handleCreatePoolQuestion}
+                >
+                  {editingPoolQuestion ? '💾 Сохранить' : '➕ Добавить'}
+                  </button>
+                </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmModalComponent />
     </div>
   );

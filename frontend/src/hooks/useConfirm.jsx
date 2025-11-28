@@ -9,11 +9,30 @@ export const useConfirm = () => {
     confirmText: 'Да',
     cancelText: 'Отмена',
     type: 'warning',
-    onConfirm: null
+    onConfirm: null,
+    onCancel: null
   });
 
   const confirm = (options) => {
     return new Promise((resolve) => {
+      let resolved = false;
+      
+      const confirmHandler = () => {
+        if (!resolved) {
+          resolved = true;
+          setModalState(prev => ({ ...prev, isOpen: false, onConfirm: null, onCancel: null }));
+          resolve(true);
+        }
+      };
+      
+      const cancelHandler = () => {
+        if (!resolved) {
+          resolved = true;
+          setModalState(prev => ({ ...prev, isOpen: false, onConfirm: null, onCancel: null }));
+          resolve(false);
+        }
+      };
+      
       setModalState({
         isOpen: true,
         title: options.title || 'Подтверждение',
@@ -21,22 +40,29 @@ export const useConfirm = () => {
         confirmText: options.confirmText || 'Да',
         cancelText: options.cancelText || 'Отмена',
         type: options.type || 'warning',
-        onConfirm: () => {
-          resolve(true);
-        }
+        onConfirm: confirmHandler,
+        onCancel: cancelHandler
       });
     });
   };
 
-  const closeModal = () => {
-    setModalState(prev => ({ ...prev, isOpen: false }));
+  const handleConfirm = () => {
+    if (modalState.onConfirm) {
+      modalState.onConfirm();
+    }
+  };
+
+  const handleCancel = () => {
+    if (modalState.onCancel) {
+      modalState.onCancel();
+    }
   };
 
   const ConfirmModalComponent = () => (
     <ConfirmModal
       isOpen={modalState.isOpen}
-      onClose={closeModal}
-      onConfirm={modalState.onConfirm}
+      onClose={handleCancel}
+      onConfirm={handleConfirm}
       title={modalState.title}
       message={modalState.message}
       confirmText={modalState.confirmText}

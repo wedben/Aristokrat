@@ -1,703 +1,388 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../api';
-import { useToast } from '../contexts/ToastContext';
-import { useConfirm } from '../hooks/useConfirm';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line
-} from 'recharts';
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "../api";
+import { useToast } from "../contexts/ToastContext";
+import { useConfirm } from "../hooks/useConfirm";
+import {
+  FaUser, FaBookOpen, FaGraduationCap,
+  FaHome, FaSignOutAlt, FaMedal, FaTrophy, FaAward,
+  FaRocket, FaLightbulb
+} from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const Profile = () => {
-  const { showSuccess, showError } = useToast();
-  const { confirm, ConfirmModalComponent } = useConfirm();
-  const [user, setUser] = useState(null);
-  const [waiters, setWaiters] = useState([]);
-  const [selectedWaiter, setSelectedWaiter] = useState(null);
-  const [waiterActivity, setWaiterActivity] = useState([]);
-  const [testResults, setTestResults] = useState([]);
-  const [cardViews, setCardViews] = useState([]);
-  const [learnedCards, setLearnedCards] = useState([]);
-  const [completedTests, setCompletedTests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
   const navigate = useNavigate();
+  const { showError, showSuccess } = useToast();
+  const { confirm, ConfirmModalComponent } = useConfirm();
+
+  const [user, setUser] = useState(null);
+  const [allLearnedCards, setAllLearnedCards] = useState([]);
+  const [completedTests, setCompletedTests] = useState([]);
+  const [allNewCards, setAllNewCards] = useState([]);
+  const [allTests, setAllTests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCardsModal, setShowCardsModal] = useState(false);
+  const [showTestsModal, setShowTestsModal] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/auth/me');
-        setUser(response.data);
+        setLoading(true);
         
-        // Если админ, загружаем статистику официантов
-        if (response.data.role === 'admin') {
-          await fetchWaitersStats();
-        } else {
-          // Если официант, загружаем изученные карточки и пройденные тесты
-          await Promise.all([fetchLearnedCards(), fetchCompletedTests()]);
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        navigate('/login');
+        // Получаем данные пользователя
+        const userRes = await api.get("/auth/me");
+        setUser(userRes.data);
+
+        // Получаем все данные параллельно
+        const [newCardsProgressRes, testsRes, allNewCardsRes, allTestsRes] = await Promise.all([
+          api.get("/cards/progress/me").catch(() => ({ data: {} })),
+          api.get("/tests/progress/me").catch(() => ({ data: [] })),
+          api.get("/cards/").catch(() => ({ data: [] })),
+          api.get("/tests/").catch(() => ({ data: [] })),
+        ]);
+
+        // Обрабатываем изученные карточки
+        const newCardsProgress = newCardsProgressRes.data || {};
+        const newLearnedCardIds = Object.keys(newCardsProgress).filter(
+          cardId => newCardsProgress[cardId]?.is_learned
+        );
+        
+        const allNewCardsData = Array.isArray(allNewCardsRes.data) ? allNewCardsRes.data : [];
+        const newLearnedCardsData = allNewCardsData.filter(card => 
+          newLearnedCardIds.includes(String(card.id))
+        );
+        
+        setAllLearnedCards(newLearnedCardsData);
+        setAllNewCards(allNewCardsData);
+        setCompletedTests(Array.isArray(testsRes.data) ? testsRes.data : []);
+        setAllTests(Array.isArray(allTestsRes.data) ? allTestsRes.data : []);
+      } catch (err) {
+        console.error("Ошибка загрузки профиля:", err);
+        showError("Ошибка загрузки профиля");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUser();
-  }, [navigate]);
+    fetchData();
+  }, [navigate, showError]);
 
-  const fetchWaitersStats = async () => {
-    try {
-      const response = await api.get('/admin/users');
-      setWaiters(response.data);
-    } catch (error) {
-      console.error('Error fetching waiters:', error);
-    }
-  };
-
-  const fetchLearnedCards = async () => {
-    try {
-      const response = await api.get('/menu/progress/me');
-      setLearnedCards(response.data.filter(card => card.is_learned));
-    } catch (error) {
-      console.error('Error fetching learned cards:', error);
-    }
-  };
-
-  const fetchCompletedTests = async () => {
-    try {
-      const response = await api.get('/tests/progress/me');
-      setCompletedTests(response.data);
-    } catch (error) {
-      console.error('Error fetching completed tests:', error);
-    }
-  };
-
-  const fetchWaiterDetails = async (userId) => {
-    try {
-      const [activityResponse, resultsResponse, viewsResponse] = await Promise.all([
-        api.get(`/admin/users/${userId}/activity`),
-        api.get(`/admin/users/${userId}/test-results`),
-        api.get(`/admin/users/${userId}/card-views`)
-      ]);
-      
-      setWaiterActivity(activityResponse.data);
-      setTestResults(resultsResponse.data);
-      setCardViews(viewsResponse.data);
-    } catch (error) {
-      console.error('Error fetching waiter details:', error);
-    }
-  };
-
-  const handleToggleUser = async (userId) => {
-    try {
-      await api.patch(`/admin/users/${userId}`, 
-        { is_active: !waiters.find(w => w.user_id === userId)?.is_active }
-      );
-      await fetchWaitersStats();
-    } catch (error) {
-      console.error('Error toggling user:', error);
-    }
-  };
-
-  const handleDeleteUser = async (userId) => {
+  const handleLogout = async () => {
     const confirmed = await confirm({
-      title: 'Удаление пользователя',
-      message: 'Вы уверены, что хотите удалить этого пользователя? Это действие нельзя отменить.',
-      confirmText: 'Удалить',
+      title: 'Выход из системы',
+      message: 'Вы уверены, что хотите выйти?',
+      confirmText: 'Выйти',
       cancelText: 'Отмена',
-      type: 'danger'
+      type: 'warning'
     });
-
     if (confirmed) {
-      try {
-        await api.delete(`/admin/users/${userId}`);
-        await fetchWaitersStats();
-        showSuccess('Пользователь успешно удален');
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        showError('Ошибка при удалении пользователя');
-      }
+      localStorage.removeItem("token");
+      showSuccess("Вы вышли из системы");
+      navigate("/login");
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+  const getLevelInfo = () => {
+    const total = (allLearnedCards?.length || 0) + (completedTests?.length || 0);
+    if (total >= 20) return { title: "Эксперт", color: "text-primary", icon: <FaMedal /> };
+    if (total >= 15) return { title: "Профессионал", color: "text-success", icon: <FaTrophy /> };
+    if (total >= 10) return { title: "Опытный", color: "text-warning", icon: <FaAward /> };
+    if (total >= 5) return { title: "Развивающийся", color: "text-info", icon: <FaRocket /> };
+    return { title: "Новичок", color: "text-secondary", icon: <FaLightbulb /> };
   };
+
+  const level = getLevelInfo();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Загрузка...</p>
-        </div>
+      <div className="d-flex vh-100 justify-content-center align-items-center bg-white">
+        <div className="spinner-border text-primary me-2" role="status" />
+        <span>Загрузка профиля...</span>
       </div>
     );
   }
 
   if (!user) {
-    return null;
-  }
-
-  // Группируем тесты по test_id, оставляя только лучший результат
-  const groupedTests = completedTests.reduce((acc, test) => {
-    const testId = test.test_id;
-    // Обновляем, если нет записи или новый результат лучше (меньше ошибок или больше баллов при равных ошибках)
-    const currentErrors = acc[testId] ? acc[testId].max_score - acc[testId].score : Infinity;
-    const newErrors = test.max_score - test.score;
-
-    if (!acc[testId] || newErrors < currentErrors || (newErrors === currentErrors && test.score > acc[testId].score)) {
-      acc[testId] = test;
-    }
-    return acc;
-  }, {});
-
-  const uniqueTests = Object.values(groupedTests);
-
-  // Данные для диаграмм
-  const testStatusData = uniqueTests.reduce((acc, test) => {
-    const errorsMade = test.max_score - test.score;
-    let status;
-    if (errorsMade === 0) {
-      status = 'Пройден';
-    } else if (errorsMade <= (test.test?.max_errors_allowed || 0)) {
-      status = 'Пройден с ошибками';
-    } else {
-      status = 'Не пройден';
-    }
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {});
-
-  const pieData = Object.entries(testStatusData).map(([name, value], index) => ({
-    name,
-    value,
-    color: index === 0 ? '#10B981' : index === 1 ? '#F59E0B' : '#EF4444'
-  }));
-
-  const attemptsData = uniqueTests.map(test => ({
-    name: test.test?.title || `Тест #${test.test_id}`,
-    attempts: test.attempts_count || 1,
-    score: test.score,
-    maxScore: test.max_score
-  }));
-
-  // Данные для общей диаграммы прогресса
-  const progressData = [
-    { name: 'Изученные карточки', value: learnedCards.length, color: '#3B82F6' },
-    { name: 'Пройденные тесты', value: uniqueTests.length, color: '#10B981' }
-  ];
-
-  // Отладочная информация
-  console.log('Profile Debug:', {
-    learnedCards: learnedCards.length,
-    uniqueTests: uniqueTests.length,
-    completedTests: completedTests.length,
-    progressData,
-    pieData,
-    attemptsData,
-    completedTestsData: completedTests,
-    uniqueTestsData: uniqueTests
-  });
-
-  const waiterStatsData = waiters.map(waiter => ({
-    name: waiter.full_name.split(' ')[0], // Только имя
-    cardViews: waiter.total_card_views,
-    testsCompleted: waiter.total_tests_completed,
-    testsPassed: waiter.total_tests_passed
-  }));
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {user.role === 'admin' ? 'Панель администратора' : 'Мой профиль'}
-              </h1>
-              <p className="text-gray-600">
-                {user.first_name} {user.last_name} ({user.email})
-              </p>
-            </div>
-            <div className="flex space-x-4">
-              <button
-                onClick={() => navigate('/')}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                🏠 Главная
-              </button>
-              <button
-                onClick={logout}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Выйти
-              </button>
-            </div>
-          </div>
+    return (
+      <div className="d-flex vh-100 justify-content-center align-items-center bg-white">
+        <div className="alert alert-warning">
+          Не удалось загрузить данные пользователя
         </div>
       </div>
+    );
+  }
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {user.role === 'admin' ? (
-          <div className="space-y-6">
-            {/* Навигация */}
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => setActiveTab('overview')}
-                  className={`px-4 py-2 rounded-md font-medium ${
-                    activeTab === 'overview' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  📊 Обзор
-                </button>
-                <button
-                  onClick={() => setActiveTab('employees')}
-                  className={`px-4 py-2 rounded-md font-medium ${
-                    activeTab === 'employees' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  👥 Сотрудники
-                </button>
-                <button
-                  onClick={() => setActiveTab('activity')}
-                  className={`px-4 py-2 rounded-md font-medium ${
-                    activeTab === 'activity' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  📈 Активность
-                </button>
-              </div>
+  return (
+    <>
+      <style>{`
+        @media (min-width: 768px) {
+          .profile-sidebar {
+            width: 250px !important;
+            min-width: 250px !important;
+            max-width: 250px !important;
+          }
+        }
+      `}</style>
+      <div className="d-flex flex-column flex-md-row bg-white min-vh-100" style={{ overflowX: 'hidden' }}>
+        {/* SIDEBAR */}
+        <div className="bg-white shadow-sm d-flex flex-row flex-md-column p-3 profile-sidebar" style={{ width: "100%", minWidth: "100%", maxWidth: "100%", flexShrink: 0 }}>
+          <div className="d-flex flex-row flex-md-column align-items-center align-items-md-start justify-content-between w-100 mb-0 mb-md-4">
+            <div className="d-flex align-items-center">
+              <FaUser className="text-primary fs-3 me-2" />
+              <h5 className="m-0 fw-bold d-none d-md-block">Профиль</h5>
+              <h6 className="m-0 fw-bold d-md-none">Профиль</h6>
             </div>
-
-            {/* Обзор */}
-            {activeTab === 'overview' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Статистика сотрудников */}
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Статистика сотрудников</h3>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{waiters.length}</div>
-                      <div className="text-sm text-gray-600">Всего сотрудников</div>
-                    </div>
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">
-                        {waiters.filter(w => w.is_active).length}
-                      </div>
-                      <div className="text-sm text-gray-600">Активных</div>
-                    </div>
-                  </div>
-                  
-                  {waiters.length > 0 && (
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={waiterStatsData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Bar dataKey="cardViews" fill="#3B82F6" name="Просмотры карточек" />
-                          <Bar dataKey="testsCompleted" fill="#10B981" name="Завершенные тесты" />
-                          <Bar dataKey="testsPassed" fill="#F59E0B" name="Пройденные тесты" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </div>
-
-                {/* Активность по дням */}
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Активность сотрудников</h3>
-                  {waiters.length > 0 ? (
-                    <div className="space-y-3">
-                      {waiters.slice(0, 5).map(waiter => (
-                        <div key={waiter.user_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div>
-                            <div className="font-medium text-gray-900">{waiter.full_name}</div>
-                            <div className="text-sm text-gray-600">
-                              {waiter.total_card_views} просмотров, {waiter.total_tests_completed} тестов
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className={`text-sm font-medium ${
-                              waiter.is_active ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {waiter.is_active ? 'Активен' : 'Заблокирован'}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {waiter.last_activity ? 
-                                new Date(waiter.last_activity).toLocaleDateString('ru-RU') : 
-                                'Нет данных'
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-center py-8">Нет зарегистрированных сотрудников</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Сотрудники */}
-            {activeTab === 'employees' && (
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Управление сотрудниками</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сотрудник</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Просмотры</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Тесты</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {waiters.map((waiter) => (
-                        <tr key={waiter.user_id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{waiter.full_name}</div>
-                              <div className="text-sm text-gray-500">{waiter.email}</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              waiter.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {waiter.is_active ? 'Активен' : 'Заблокирован'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {waiter.total_card_views}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {waiter.total_tests_passed}/{waiter.total_tests_completed}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => {
-                                  setSelectedWaiter(waiter);
-                                  fetchWaiterDetails(waiter.user_id);
-                                  setActiveTab('activity');
-                                }}
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                Детали
-                              </button>
-                              <button
-                                onClick={() => handleToggleUser(waiter.user_id)}
-                                className={`${
-                                  waiter.is_active 
-                                    ? 'text-yellow-600 hover:text-yellow-900' 
-                                    : 'text-green-600 hover:text-green-900'
-                                }`}
-                              >
-                                {waiter.is_active ? 'Заблокировать' : 'Разблокировать'}
-                              </button>
-                              <button
-                                onClick={() => handleDeleteUser(waiter.user_id)}
-                                className="text-red-600 hover:text-red-900"
-                              >
-                                Удалить
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Активность */}
-            {activeTab === 'activity' && selectedWaiter && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Детальная активность: {selectedWaiter.full_name}
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Результаты тестов */}
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-3">Результаты тестов</h4>
-                      <div className="space-y-2">
-                        {testResults.slice(0, 5).map((result) => (
-                          <div key={result.id} className="p-3 bg-gray-50 rounded-lg">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium">Тест #{result.test_id}</span>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                result.is_passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                              }`}>
-                                {result.is_passed ? 'Пройден' : 'Не пройден'}
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {result.score}/{result.max_score} ({result.attempts_count || 1} попыток)
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Просмотры карточек */}
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-3">Просмотры карточек</h4>
-                      <div className="space-y-2">
-                        {cardViews.slice(0, 5).map((view) => (
-                          <div key={view.id} className="p-3 bg-gray-50 rounded-lg">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium">Карточка #{view.card_id}</span>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                view.learned ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {view.learned ? 'Изучена' : 'Просмотрена'}
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              {view.viewed_count} раз
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          // Профиль официанта
-          <div className="space-y-6">
-            {/* Компактная статистика */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-3xl font-bold text-blue-600">{learnedCards.length}</div>
-                  <div className="text-sm text-gray-600">Изученных карточек</div>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-3xl font-bold text-green-600">{uniqueTests.length}</div>
-                  <div className="text-sm text-gray-600">Пройденных тестов</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-3xl font-bold text-purple-600">
-                    {completedTests.reduce((sum, test) => sum + (test.attempts_count || 1), 0)}
-                  </div>
-                  <div className="text-sm text-gray-600">Всего попыток</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Диаграммы */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Общий прогресс */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Общий прогресс</h3>
-                <div className="h-64">
-                  {progressData.some(item => item.value > 0) ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={progressData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, value }) => `${name}: ${value}`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {progressData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">📊</div>
-                        <p>Нет данных для отображения</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Статус тестов */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Статус тестов</h3>
-                <div className="h-64">
-                  {pieData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={pieData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {pieData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <div className="text-center">
-                        <div className="text-4xl mb-2">📈</div>
-                        <p>Нет пройденных тестов</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Попытки по тестам */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Попытки по тестам</h3>
-              <div className="h-64">
-                {attemptsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={attemptsData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="attempts" fill="#8B5CF6" name="Попытки" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">📊</div>
-                      <p>Нет данных о попытках</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Детальная таблица тестов */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Результаты тестов</h3>
-              </div>
-              {uniqueTests.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Название теста</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Описание</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Результат</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Попытки</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {uniqueTests.map((test) => {
-                        const errorsMade = test.max_score - test.score;
-                        let statusColor, statusText;
-                        if (errorsMade === 0) {
-                          statusColor = 'bg-green-100 text-green-800';
-                          statusText = 'Пройден';
-                        } else if (errorsMade <= (test.test?.max_errors_allowed || 0)) {
-                          statusColor = 'bg-yellow-100 text-yellow-800';
-                          statusText = 'Пройден с ошибками';
-                        } else {
-                          statusColor = 'bg-red-100 text-red-800';
-                          statusText = 'Не пройден';
-                        }
-
-                        return (
-                          <tr key={test.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">
-                                {test.test?.title || `Тест #${test.test_id}`}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {test.score}/{test.max_score} баллов
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900 max-w-xs">
-                                {test.test?.description || 'Описание отсутствует'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColor}`}>
-                                {statusText}
-                              </span>
-                              {test.test?.max_errors_allowed > 0 && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  Допустимо ошибок: {test.test.max_errors_allowed}
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {test.attempts_count || 1}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {test.completed_at ? 
-                                new Date(test.completed_at).toLocaleDateString('ru-RU') : 
-                                'Нет данных'
-                              }
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="px-6 py-8 text-center text-gray-500">
-                  <div className="text-4xl mb-2">📝</div>
-                  <p>Нет пройденных тестов</p>
-                </div>
-              )}
+            <div className="d-flex d-md-none align-items-center gap-2">
+              <span className="fw-semibold small">{user?.full_name || user?.username || 'Пользователь'}</span>
+              <img
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.username || 'User')}&background=0D6EFD&color=fff`}
+                alt="avatar"
+                className="rounded-circle"
+                style={{ width: 32, height: 32 }}
+              />
             </div>
           </div>
-        )}
+
+        <ul className="nav flex-row flex-md-column gap-2 w-100">
+          <li className="nav-item">
+            <Link to="/standards" className="nav-link text-dark d-flex align-items-center">
+              <FaHome className="me-2" /> <span className="d-none d-md-inline">Назад</span>
+            </Link>
+          </li>
+          <li className="nav-item">
+            <button className="btn btn-outline-danger w-100 w-md-100 mt-0 mt-md-3" onClick={handleLogout}>
+              <FaSignOutAlt className="me-2" /> <span className="d-none d-md-inline">Выйти</span>
+              <span className="d-md-none">Выход</span>
+            </button>
+          </li>
+        </ul>
       </div>
-      <ConfirmModalComponent />
-    </div>
+
+      {/* MAIN CONTENT */}
+      <div className="flex-grow-1" style={{ minWidth: 0, overflowX: 'hidden' }}>
+        {/* TOP BAR */}
+        <nav className="navbar navbar-light bg-white shadow-sm px-3 px-md-4 py-2 py-md-3 d-none d-md-flex" style={{ flexShrink: 0 }}>
+          <h4 className="fw-bold text-primary m-0">Личный кабинет официанта</h4>
+          <div className="d-flex align-items-center gap-3">
+            <span className="fw-semibold">{user?.full_name || user?.username || 'Пользователь'}</span>
+            <img
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.username || 'User')}&background=0D6EFD&color=fff`}
+              alt="avatar"
+              className="rounded-circle"
+              style={{ width: 40, height: 40 }}
+            />
+          </div>
+        </nav>
+
+        {/* CONTENT BODY */}
+        <div className="container-fluid py-3 py-md-4 px-3 px-md-4" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
+          {/* LEVEL CARD */}
+          <div className="card border-0 shadow-sm mb-3 mb-md-4">
+            <div className="card-body d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+              <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: 0 }}>
+                <div className="bg-light p-2 p-md-3 rounded-circle me-2 me-md-3 fs-2 text-primary flex-shrink-0">
+                  {level.icon}
+                </div>
+                <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                  <h5 className="mb-1 mb-md-1">
+                    Уровень:{" "}
+                    <span className={`fw-bold ${level.color}`}>{level.title}</span>
+                  </h5>
+                  <small className="text-muted d-block d-md-inline" style={{ wordBreak: 'break-word' }}>
+                    Карточки: {allLearnedCards.length} / {allNewCards.length} | Тесты: {completedTests.length} / {allTests.length}
+                  </small>
+                </div>
+              </div>
+              <div className="text-center text-md-end flex-shrink-0">
+                <h2 className="fw-bold mb-0">{allLearnedCards.length + completedTests.length}</h2>
+                <small className="text-muted">Общий прогресс</small>
+              </div>
+            </div>
+          </div>
+
+          {/* DASHBOARD CARDS */}
+          <div className="row g-3 g-md-4">
+            <div className="col-12 col-sm-6 col-lg-4">
+              <div 
+                className="card border-0 shadow-sm h-100 cursor-pointer"
+                onClick={() => setShowCardsModal(true)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                  <div>
+                    <h6 className="fw-bold mb-1 d-flex align-items-center">
+                      <FaBookOpen className="me-2 text-primary" />
+                      <span className="d-none d-sm-inline">Карточки</span>
+                      <span className="d-inline d-sm-none">Карт.</span>
+                    </h6>
+                    <small className="text-muted">Изучено</small>
+                  </div>
+                  <h3 className="text-primary mb-0">{allLearnedCards.length}</h3>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-12 col-sm-6 col-lg-4">
+              <div 
+                className="card border-0 shadow-sm h-100 cursor-pointer"
+                onClick={() => setShowTestsModal(true)}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                  <div>
+                    <h6 className="fw-bold mb-1 d-flex align-items-center">
+                      <FaGraduationCap className="me-2 text-success" />
+                      <span className="d-none d-sm-inline">Тесты</span>
+                      <span className="d-inline d-sm-none">Тест.</span>
+                    </h6>
+                    <small className="text-muted">Пройдено</small>
+                  </div>
+                  <h3 className="text-success mb-0">{completedTests.length}</h3>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CARDS MODAL */}
+          <AnimatePresence>
+            {showCardsModal && (
+              <motion.div
+                className="modal fade show d-block bg-dark bg-opacity-50"
+                onClick={() => setShowCardsModal(false)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <motion.div
+                  className="modal-dialog modal-dialog-centered modal-dialog-scrollable"
+                  onClick={(e) => e.stopPropagation()}
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  style={{ maxWidth: '900px', maxHeight: '80vh', margin: '10px auto' }}
+                >
+                  <div className="modal-content border-0 d-flex flex-column" style={{ maxHeight: '80vh' }}>
+                    <div className="modal-header bg-primary text-white">
+                      <h5 className="modal-title">
+                        <FaBookOpen className="me-2" />
+                        Изученные карточки ({allLearnedCards.length})
+                      </h5>
+                      <button type="button" className="btn-close btn-close-white" onClick={() => setShowCardsModal(false)} />
+                    </div>
+                    <div className="modal-body overflow-auto flex-grow-1" style={{ maxHeight: 'calc(80vh - 120px)' }}>
+                      {allLearnedCards.length === 0 ? (
+                        <div className="text-center text-muted py-4">
+                          <FaBookOpen className="fs-1 mb-3 text-muted" />
+                          <p>Вы еще не изучили ни одной карточки</p>
+                        </div>
+                      ) : (
+                        <div className="row g-2 g-md-3">
+                          {allLearnedCards.map((card) => (
+                            <div key={`card-${card.id}`} className="col-6 col-sm-4 col-md-3 mb-2 mb-md-3">
+                              <div className="card border-0 shadow-sm h-100" style={{ aspectRatio: '1/1.2', minHeight: '140px' }}>
+                                <div className="card-body p-3 d-flex flex-column justify-content-between">
+                                  <h6 className="card-title mb-2" style={{ fontSize: '0.95rem', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                                    {card.name || card.preview_title || card.detailed_title || 'Карточка'}
+                                  </h6>
+                                  <span className="badge bg-success align-self-start" style={{ fontSize: '0.75rem' }}>Изучено</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* TESTS MODAL */}
+          <AnimatePresence>
+            {showTestsModal && (
+              <motion.div
+                className="modal fade show d-block bg-dark bg-opacity-50"
+                onClick={() => setShowTestsModal(false)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <motion.div
+                  className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+                  onClick={(e) => e.stopPropagation()}
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  style={{ maxWidth: '95vw', margin: '10px auto' }}
+                >
+                  <div className="modal-content border-0">
+                    <div className="modal-header bg-success text-white">
+                      <h5 className="modal-title">
+                        <FaGraduationCap className="me-2" />
+                        Пройденные тесты ({completedTests.length})
+                      </h5>
+                      <button type="button" className="btn-close btn-close-white" onClick={() => setShowTestsModal(false)} />
+                    </div>
+                    <div className="modal-body max-h-400 overflow-auto">
+                      {completedTests.length === 0 ? (
+                        <div className="text-center text-muted py-4">
+                          <FaGraduationCap className="fs-1 mb-3 text-muted" />
+                          <p>Вы еще не прошли ни одного теста</p>
+                        </div>
+                      ) : (
+                        <div className="row">
+                          {completedTests.map((testProgress) => {
+                            const errorsMade = (testProgress.max_score || 0) - (testProgress.score || 0);
+                            const maxErrorsAllowed = testProgress.test?.max_errors_allowed || 0;
+                            
+                            let badgeColor = 'bg-danger';
+                            let statusText = 'Не пройден';
+                            let statusIcon = '❌';
+                            
+                            if (errorsMade === 0) {
+                              badgeColor = 'bg-success';
+                              statusText = 'Пройден';
+                              statusIcon = '✅';
+                            } else if (errorsMade <= maxErrorsAllowed) {
+                              badgeColor = 'bg-warning';
+                              statusText = 'Пройден с ошибками';
+                              statusIcon = '⚠️';
+                            }
+                            
+                            return (
+                              <div key={testProgress.id} className="col-md-6 mb-3">
+                                <div className="card border-0 shadow-sm">
+                                  <div className="card-body">
+                                    <h6 className="card-title">{testProgress.test?.title || 'Тест'}</h6>
+                                    <p className="card-text text-muted small">Попыток: {testProgress.attempts_count || 1}</p>
+                                    <span className={`badge ${badgeColor}`}>
+                                      {statusIcon} {statusText}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <ConfirmModalComponent />
+        </div>
+      </div>
+      </div>
+    </>
   );
 };
 

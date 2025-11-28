@@ -1,0 +1,40 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aristokrat-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/app.db:/app/app.db
+      - ./backend/uploads:/app/uploads
+    environment:
+      - DATABASE_URL=sqlite:///./app.db
+    restart: unless-stopped
+    networks:
+      - aristokrat-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aristokrat-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - aristokrat-network
+
+networks:
+  aristokrat-network:
+    driver: bridge
+

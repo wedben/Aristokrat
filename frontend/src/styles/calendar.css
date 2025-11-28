@@ -1,0 +1,227 @@
+/* Кастомные стили для react-calendar */
+.react-calendar-custom {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  font-family: inherit;
+  margin: 0 auto;
+}
+
+.react-calendar-custom .react-calendar__navigation {
+  display: flex;
+  height: 44px;
+  margin-bottom: 1em;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px 8px 0 0;
+}
+
+.react-calendar-custom .react-calendar__navigation button {
+  min-width: 44px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.react-calendar-custom .react-calendar__navigation button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.react-calendar-custom .react-calendar__navigation button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.react-calendar-custom .react-calendar__navigation__label {
+  font-weight: 600;
+  color: white;
+}
+
+.react-calendar-custom .react-calendar__month-view__weekdays {
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 0.75em;
+  color: #6b7280;
+  padding: 0.5em 0;
+}
+
+.react-calendar-custom .react-calendar__month-view__weekdays__weekday {
+  padding: 0.5em;
+}
+
+.react-calendar-custom .react-calendar__month-view__days {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: #f3f4f6;
+  padding: 4px;
+}
+
+.react-calendar-custom .react-calendar__tile {
+  max-width: 100%;
+  padding: 12px 6px;
+  background: white;
+  text-align: center;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.react-calendar-custom .react-calendar__tile:hover {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.react-calendar-custom .react-calendar__tile--active {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white !important;
+  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.react-calendar-custom .react-calendar__tile--active:hover {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4);
+}
+
+.react-calendar-custom .react-calendar__tile--today {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: white !important;
+  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.react-calendar-custom .react-calendar__tile--today:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+}
+
+.react-calendar-custom .react-calendar__tile--learned {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white !important;
+  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.react-calendar-custom .react-calendar__tile--learned:hover {
+  background: linear-gradient(135deg, #059669, #047857) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4);
+}
+
+.react-calendar-custom .react-calendar__tile--neighboringMonth {
+  color: #d1d5db;
+}
+
+.react-calendar-custom .react-calendar__tile--neighboringMonth:hover {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+/* Индикатор активности */
+.activity-dot {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #10b981;
+  border-radius: 50%;
+}
+
+.activity-dot.intensity-1 {
+  width: 3px;
+  height: 3px;
+  background: #86efac;
+}
+
+.activity-dot.intensity-2 {
+  width: 4px;
+  height: 4px;
+  background: #10b981;
+}
+
+.activity-dot.intensity-3 {
+  width: 5px;
+  height: 5px;
+  background: #059669;
+}
+
+.activity-dot.intensity-learned {
+  width: 6px;
+  height: 6px;
+  background: white;
+}
+
+.react-calendar-custom .react-calendar__tile--active .activity-dot {
+  background: white;
+}
+
+.react-calendar-custom .react-calendar__tile--today .activity-dot {
+  background: white;
+}
+
+.react-calendar-custom .react-calendar__tile--learned .activity-dot {
+  background: white;
+}
+
+/* Адаптивность */
+@media (max-width: 640px) {
+  .react-calendar-custom {
+    max-width: 100%;
+    font-size: 12px;
+  }
+  
+  .react-calendar-custom .react-calendar__tile {
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+  
+  .react-calendar-custom .react-calendar__navigation {
+    height: 36px;
+  }
+  
+  .react-calendar-custom .react-calendar__navigation button {
+    min-width: 36px;
+    font-size: 14px;
+  }
+}
+
+/* Дополнительные стили для модальных окон */
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+.max-h-400 {
+  max-height: 400px;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+/* Стили для карточек в модальных окнах */
+.card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+
+/* Стили для сайдбара */
+.nav-link:hover {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}

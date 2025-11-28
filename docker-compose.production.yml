@@ -1,0 +1,52 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aristokrat-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/app.db:/app/app.db
+      - ./backend/uploads:/app/uploads
+    environment:
+      - DATABASE_URL=sqlite:///./app.db
+    restart: unless-stopped
+    networks:
+      - aristokrat-network
+    # Для production можно использовать только volumes для данных
+    # volumes:
+    #   - backend-data:/app/app.db
+    #   - backend-uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aristokrat-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      # Для production укажите ваш внешний IP или домен
+      - VITE_API_URL=http://45.11.24.35:8000
+      # Или если есть домен:
+      # - VITE_API_URL=http://45.11.24.35:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - aristokrat-network
+
+networks:
+  aristokrat-network:
+    driver: bridge
+
+# Для production можно использовать named volumes
+# volumes:
+#   backend-data:
+#   backend-uploads:
+

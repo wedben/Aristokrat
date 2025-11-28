@@ -31,10 +31,13 @@ class UserStatsRead(BaseModel):
     full_name: str
     email: str
     is_active: bool
+    is_pending_verification: Optional[bool] = False
     total_card_views: int
     total_tests_completed: int
     total_tests_passed: int
     last_activity: Optional[datetime] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
 
 class CardViewRead(BaseModel):
     id: int
