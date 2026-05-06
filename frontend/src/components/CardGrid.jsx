@@ -106,6 +106,7 @@ const CardGrid = ({ category = 'service' }) => {
 
   const handleMarkLearned = async (cardId, e) => {
     e.stopPropagation(); // Предотвращаем открытие модального окна
+    e.preventDefault(); // Предотвращаем любые другие действия
     
     try {
       setMarkingLearned(prev => ({ ...prev, [cardId]: true }));
@@ -119,6 +120,9 @@ const CardGrid = ({ category = 'service' }) => {
           is_learned: true
         }
       }));
+      
+      // Отправляем событие для обновления профиля
+      window.dispatchEvent(new CustomEvent('cardLearned', { detail: { cardId } }));
       
       showSuccess('Карточка отмечена как изученная!');
     } catch (err) {
@@ -222,74 +226,92 @@ const CardGrid = ({ category = 'service' }) => {
 
       {/* Сетка карточек */}
       <div className="row g-3 g-md-4">
-        {visibleCards.map((card, index) => (
-          <motion.div
-            key={card.id}
-            className="col-12 col-sm-6 col-lg-4"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: index * 0.1 }}
-          >
-            <div
-              className="card border-0 shadow-sm h-100 cursor-pointer"
-              onClick={() => setSelectedCard(card)}
-              style={{ cursor: 'pointer' }}
+        {visibleCards.map((card, index) => {
+          const isLearned = cardProgress[String(card.id)]?.is_learned;
+          
+          return (
+            <motion.div
+              key={card.id}
+              className="col-12 col-sm-6 col-lg-4"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
             >
-              <div className="card-body p-4 text-center">
-                <div className="mb-3">
-                  {card.preview_image ? (
-                    <div className="mb-3">
-                      <img
-                        src={resolveImageUrl(card.preview_image)}
-                        alt={card.preview_title}
-                        className="img-fluid rounded"
-                        style={{ 
-                          width: '100%',
-                          height: '120px',
-                          objectFit: shouldContain(card.category) ? 'contain' : 'cover',
-                          backgroundColor: shouldContain(card.category) ? '#fff' : 'transparent',
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="fs-2 text-primary mb-2">
-                      {React.createElement(getIconComponent(card.preview_icon))}
-                    </div>
-                  )}
-                  <h5 className="card-title mb-0 fw-bold">
-                    {card.preview_title}
-                  </h5>
-                </div>
-                
-                <p className="card-text text-muted mb-4">
-                  {card.preview_description}
-                </p>
-
-                {card.service_points && (
-                  <div className="standards-preview text-start">
-                    {card.service_points.slice(0, 2).map((point, pointIndex) => (
-                      <div key={pointIndex} className="d-flex align-items-center mb-2">
-                        {React.createElement(getIconComponent(point.icon), { className: "text-success me-2 flex-shrink-0" })}
-                        <span className="small">{point.title}</span>
-                      </div>
-                    ))}
-                    {card.service_points.length > 2 && (
-                      <div className="text-muted small text-center">
-                        +{card.service_points.length - 2} еще...
-                      </div>
-                    )}
+              <div
+                className="card border-0 shadow-sm h-100 cursor-pointer position-relative"
+                onClick={() => setSelectedCard(card)}
+                style={{ cursor: 'pointer' }}
+              >
+                {/* Индикатор изученности - зелёная галочка */}
+                {isLearned && (
+                  <div 
+                    className="position-absolute top-0 end-0 m-2"
+                    style={{ zIndex: 10 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FaCheckCircle 
+                      className="text-success" 
+                      style={{ fontSize: '1.5rem', backgroundColor: 'white', borderRadius: '50%' }}
+                    />
                   </div>
                 )}
+                
+                <div className="card-body p-4 text-center">
+                  <div className="mb-3">
+                    {card.preview_image ? (
+                      <div className="mb-3">
+                        <img
+                          src={resolveImageUrl(card.preview_image)}
+                          alt={card.preview_title}
+                          className="img-fluid rounded"
+                          style={{ 
+                            width: '100%',
+                            height: '120px',
+                            objectFit: shouldContain(card.category) ? 'contain' : 'cover',
+                            backgroundColor: shouldContain(card.category) ? '#fff' : 'transparent',
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="fs-2 text-primary mb-2">
+                        {React.createElement(getIconComponent(card.preview_icon))}
+                      </div>
+                    )}
+                    <h5 className="card-title mb-0 fw-bold">
+                      {card.preview_title}
+                    </h5>
+                  </div>
+                  
+                  <p className="card-text text-muted mb-4">
+                    {card.preview_description}
+                  </p>
 
-                <div className="mt-3">
-                  <span className="badge bg-primary text-wrap" style={{ maxWidth: '100%', wordBreak: 'break-word' }}>
-                    Нажмите для подробностей
-                  </span>
+                  {card.service_points && (
+                    <div className="standards-preview text-start">
+                      {card.service_points.slice(0, 2).map((point, pointIndex) => (
+                        <div key={pointIndex} className="d-flex align-items-center mb-2">
+                          {React.createElement(getIconComponent(point.icon), { className: "text-success me-2 flex-shrink-0" })}
+                          <span className="small">{point.title}</span>
+                        </div>
+                      ))}
+                      {card.service_points.length > 2 && (
+                        <div className="text-muted small text-center">
+                          +{card.service_points.length - 2} еще...
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="mt-3">
+                    <span className="badge bg-primary text-wrap" style={{ maxWidth: '100%', wordBreak: 'break-word' }}>
+                      Нажмите для подробностей
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Модальное окно с детальной информацией */}
@@ -305,8 +327,10 @@ const CardGrid = ({ category = 'service' }) => {
             <motion.div
               className="modal-dialog modal-dialog-centered modal-dialog-scrollable"
               onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
               style={{ 
                 maxWidth: window.innerWidth < 768 
                   ? 'calc(100% - 1rem)' 
@@ -314,7 +338,9 @@ const CardGrid = ({ category = 'service' }) => {
                     ? '800px' 
                     : (selectedCard?.category === 'wine') 
                       ? '1000px' 
-                      : '600px', 
+                      : (selectedCard?.category === 'service' || selectedCard?.category === 'service_basics' || selectedCard?.category === 'service_aristokrat')
+                        ? '1200px'
+                        : '600px', 
                 margin: window.innerWidth < 768 ? '0.5rem auto' : '10px auto',
                 maxHeight: '90vh'
               }}
@@ -335,17 +361,42 @@ const CardGrid = ({ category = 'service' }) => {
                 
                 <div className="modal-body p-4">
                   {/* Сервисные карточки */}
-                  {selectedCard.category === 'service' && (
-                    <>
-                      {selectedCard.detailed_description && (
-                        <div className="mb-4">
-                          <p className="lead">{selectedCard.detailed_description}</p>
-                        </div>
-                      )}
-
-                      {selectedCard.service_points && (
-                        <div className="d-flex flex-column gap-4">
+                  {(selectedCard.category === 'service' || selectedCard.category === 'service_basics' || selectedCard.category === 'service_aristokrat') && (
+                    <div className="service-modal-content">
+                      {/* Верхняя часть - описание и изображение */}
+                      <div className="service-modal-top mb-4">
+                        {selectedCard.detailed_description && (
+                          <div className="mb-3">
+                            <h6 className="fw-bold text-primary mb-3">
+                              <FaBook className="me-2" />
+                              Описание
+                            </h6>
+                            <p className="lead">{selectedCard.detailed_description}</p>
+                          </div>
+                        )}
+                        
+                        {selectedCard.detailed_image && (
                           <div>
+                            <img
+                              src={resolveImageUrl(selectedCard.detailed_image)}
+                              alt={selectedCard.detailed_title || selectedCard.preview_title}
+                              className="img-fluid"
+                              style={{
+                                width: '100%',
+                                maxHeight: '300px',
+                                objectFit: 'contain',
+                                backgroundColor: '#fff'
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Нижняя часть - два блока рядом: принципы и преимущества */}
+                      <div className="service-modal-bottom d-flex flex-column flex-md-row gap-4">
+                        {/* Левая колонка - Основные принципы */}
+                        {selectedCard.service_points && (
+                          <div className="service-modal-principles flex-fill">
                             <h6 className="fw-bold text-primary mb-3">
                               <FaStar className="me-2" />
                               Основные принципы
@@ -368,35 +419,36 @@ const CardGrid = ({ category = 'service' }) => {
                               </motion.div>
                             ))}
                           </div>
+                        )}
 
-                          {selectedCard.service_benefits && (
-                            <div>
-                              <h6 className="fw-bold text-success mb-3">
-                                <FaHeart className="me-2" />
-                                Преимущества
-                              </h6>
-                              {selectedCard.service_benefits.map((benefit, index) => (
-                                <motion.div
-                                  key={index}
-                                  className="d-flex align-items-start mb-3"
-                                  initial={{ opacity: 0, x: 20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                                >
-                                  <div className="p-2 bg-success bg-opacity-10 rounded-circle me-3 flex-shrink-0">
-                                    {React.createElement(getIconComponent(benefit.icon), { className: "text-success" })}
-                                  </div>
-                                  <div>
-                                    <h6 className="fw-bold mb-1">{benefit.title}</h6>
-                                    <p className="text-muted small mb-0">{benefit.description}</p>
-                                  </div>
-                                </motion.div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
+                        {/* Правая колонка - Преимущества */}
+                        {selectedCard.service_benefits && (
+                          <div className="service-modal-benefits flex-fill">
+                            <h6 className="fw-bold text-success mb-3">
+                              <FaHeart className="me-2" />
+                              Преимущества
+                            </h6>
+                            {selectedCard.service_benefits.map((benefit, index) => (
+                              <motion.div
+                                key={index}
+                                className="d-flex align-items-start mb-3"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.4, delay: index * 0.1 }}
+                              >
+                                <div className="p-2 bg-success bg-opacity-10 rounded-circle me-3 flex-shrink-0">
+                                  {React.createElement(getIconComponent(benefit.icon), { className: "text-success" })}
+                                </div>
+                                <div>
+                                  <h6 className="fw-bold mb-1">{benefit.title}</h6>
+                                  <p className="text-muted small mb-0">{benefit.description}</p>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
 
                   {/* Барные и кухонные карточки */}
@@ -602,9 +654,15 @@ const CardGrid = ({ category = 'service' }) => {
                     }`}
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       handleMarkLearned(selectedCard.id, e);
                     }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
                     disabled={markingLearned[selectedCard.id]}
+                    style={{ pointerEvents: 'auto' }}
                   >
                     {markingLearned[selectedCard.id] ? (
                       <>

@@ -93,42 +93,6 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
         </span>
         <span className={`flex-1 font-medium text-xs ${styles.text}`}>{message}</span>
       </div>
-      
-      <style jsx>{`
-        @keyframes slideInRight {
-          0% {
-            transform: translateX(100%) scale(0.8);
-            opacity: 0;
-          }
-          50% {
-            transform: translateX(-10px) scale(1.05);
-            opacity: 0.8;
-          }
-          100% {
-            transform: translateX(0) scale(1);
-            opacity: 1;
-          }
-        }
-        
-        @keyframes fadeOut {
-          0% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-        }
-        
-        .animate-slide-in {
-          animation: slideInRight 0.6s ease-out;
-        }
-        
-        .animate-fade-out {
-          animation: fadeOut 1s ease-in-out forwards;
-        }
-      `}</style>
     </div>
   );
 };

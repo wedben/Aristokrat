@@ -407,17 +407,18 @@ const AdminUserProfile = () => {
             <div className="card-body">
               <h5 className="card-title fw-bold mb-3">📊 Статистика</h5>
               <div className="row text-center">
-                <div className="col-4">
+                <div className="col-6">
                   <div className="h4 mb-1 text-primary fw-bold">{learnedCardsCount}</div>
                   <div className="small text-muted">Карточек изучено</div>
                 </div>
-                <div className="col-4">
+                <div className="col-6">
                   <div className="h4 mb-1 text-info fw-bold">{user.total_tests_completed}</div>
                   <div className="small text-muted">Тестов завершено</div>
-                </div>
-                <div className="col-4">
-                  <div className="h4 mb-1 text-success fw-bold">{user.total_tests_passed}</div>
-                  <div className="small text-muted">Тестов пройдено</div>
+                  {user.total_tests_passed > 0 && (
+                    <div className="small text-success mt-1">
+                      (Пройдено: {user.total_tests_passed})
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

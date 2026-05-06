@@ -84,9 +84,14 @@ export default function AdminUsers() {
               </h1>
               <p className="lead text-muted d-none d-md-block">Просмотр и управление пользователями системы</p>
             </div>
-            <Link to="/admin" className="btn btn-outline-secondary w-100 w-md-auto">
-              ← Назад
-            </Link>
+            <div className="d-flex gap-2">
+              <Link to="/admin/password-reset" className="btn btn-primary w-100 w-md-auto">
+                🔑 Восстановление паролей
+              </Link>
+              <Link to="/admin" className="btn btn-outline-primary w-100 w-md-auto">
+                ← Назад
+              </Link>
+            </div>
           </div>
         </div>
       </div>

@@ -44,7 +44,7 @@ const Profile = () => {
         const [newCardsProgressRes, testsRes, allNewCardsRes, allTestsRes] = await Promise.all([
           api.get("/cards/progress/me").catch(() => ({ data: {} })),
           api.get("/tests/progress/me").catch(() => ({ data: [] })),
-          api.get("/cards/").catch(() => ({ data: [] })),
+          api.get("/cards/?limit=1000").catch(() => ({ data: [] })), // Увеличиваем лимит для получения всех карточек
           api.get("/tests/").catch(() => ({ data: [] })),
         ]);
 
@@ -72,6 +72,17 @@ const Profile = () => {
     };
 
     fetchData();
+    
+    // Слушаем событие обновления карточки
+    const handleCardLearned = () => {
+      fetchData();
+    };
+    
+    window.addEventListener('cardLearned', handleCardLearned);
+    
+    return () => {
+      window.removeEventListener('cardLearned', handleCardLearned);
+    };
   }, [navigate, showError]);
 
   const handleLogout = async () => {

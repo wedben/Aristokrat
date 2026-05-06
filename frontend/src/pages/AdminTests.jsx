@@ -565,15 +565,6 @@ export default function AdminTests() {
             </div>
             <div className="d-flex gap-2">
               <button
-                onClick={() => {
-                  localStorage.removeItem('token');
-                  window.location.href = '/login';
-                }}
-                className="btn btn-outline-secondary"
-              >
-                🚪 Выйти
-              </button>
-              <button
                 onClick={() => setShowCreateModal(true)}
                 className="btn btn-primary btn-lg"
               >
@@ -635,11 +626,6 @@ export default function AdminTests() {
                     <option value="asc">↑ По возрастанию</option>
                     <option value="desc">↓ По убыванию</option>
                   </select>
-                </div>
-                <div className="ms-auto">
-                  <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
-                    ➕ Новый тест
-                  </button>
                 </div>
               </div>
             </div>

@@ -63,6 +63,16 @@ def get_pending_verification_count(db: Session = Depends(get_db)):
     ).count()
     return {"count": count}
 
+@router.get("/password-reset/pending-count")
+def get_pending_password_reset_count(db: Session = Depends(get_db)):
+    """Получить количество запросов на восстановление пароля, ожидающих подтверждения"""
+    from app.models.password_reset import PasswordResetRequest
+    count = db.query(PasswordResetRequest).filter(
+        PasswordResetRequest.is_approved == False,
+        PasswordResetRequest.is_completed == False
+    ).count()
+    return {"count": count}
+
 @router.get("/users/statistics")
 def get_users_statistics(db: Session = Depends(get_db)):
     """Получить общую статистику по всем пользователям"""

@@ -5,6 +5,7 @@ from app.database.session import Base, engine
 from app.api.auth import router as auth_router
 from app.api.users import router as users_router
 from app.api.admin import router as admin_router
+from app.api.password_reset import router as password_reset_router
 from app.routers.cards import router as cards_router
 try:
     from app.api.tests import router as tests_router
@@ -12,6 +13,17 @@ except Exception:
     tests_router = None
 
 app = FastAPI(title="Aristokrat API")
+
+# CORS для dev-фронтенда и внешнего доступа (должен быть ДО роутеров)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Разрешаем доступ с любых доменов (включая Cloudflare туннели)
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600  # Кэширование preflight запросов на 1 час
+)
 
 @app.on_event("startup")
 def on_startup():
@@ -25,6 +37,7 @@ def on_startup():
         from app.models.activity import TestProgress, UserActivity
         from app.models.cards import Card, CardCategory
         from app.models.tests import Test, Question, Answer
+        from app.models.password_reset import PasswordResetRequest  # Импортируем для создания таблицы
 
         db: Session = SessionLocal()
         # Админ admin (новые данные)
@@ -1110,15 +1123,7 @@ if tests_router:
     app.include_router(tests_router)
 app.include_router(users_router)
 app.include_router(admin_router)
-
-# CORS для dev-фронтенда и внешнего доступа
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Разрешаем доступ с любых доменов
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+app.include_router(password_reset_router)
 
 # Статические файлы для загруженных изображений
 import os

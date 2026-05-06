@@ -1,7 +1,11 @@
 import axios from "axios";
 
+// Получаем URL API из переменных окружения или используем localhost по умолчанию
+// В production (через nginx) рекомендуем использовать относительный путь "/api"
+const apiUrl = (import.meta as any).env.VITE_API_URL || "/api";
+
 export const api = axios.create({
-  baseURL: (import.meta as any).env.VITE_API_URL || "http://192.168.1.135:8000",
+  baseURL: apiUrl,
 });
 
 export function setAuthToken(token?: string) {

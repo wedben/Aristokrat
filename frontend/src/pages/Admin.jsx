@@ -12,6 +12,7 @@ export default function Admin() {
     totalUsers: 0
   });
   const [pendingUsers, setPendingUsers] = useState(0);
+  const [pendingPasswordResets, setPendingPasswordResets] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showWheel, setShowWheel] = useState(false);
 
@@ -24,12 +25,13 @@ export default function Admin() {
 
     const fetchData = async () => {
       try {
-        const [userResponse, newCardsResponse, testsResponse, usersResponse, pendingResponse] = await Promise.all([
+        const [userResponse, newCardsResponse, testsResponse, usersResponse, pendingResponse, passwordResetResponse] = await Promise.all([
           api.get('/auth/me'),
           api.get('/cards'),
           api.get('/tests/'),
           api.get('/admin/users'),
-          api.get('/admin/users/pending-verification')
+          api.get('/admin/users/pending-verification'),
+          api.get('/admin/password-reset/pending-count').catch(() => ({ data: { count: 0 } }))
         ]);
 
         setUser(userResponse.data);
@@ -44,10 +46,18 @@ export default function Admin() {
           totalUsers: usersResponse.data.length
         });
         setPendingUsers(pendingResponse.data.count);
+        setPendingPasswordResets(passwordResetResponse.data.count);
       } catch (error) {
         console.error('Error fetching admin data:', error);
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+        console.error('Error details:', error.response?.data || error.message);
+        // Не удаляем токен сразу, возможно это временная ошибка
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        } else {
+          // Для других ошибок показываем сообщение, но не выходим
+          console.error('Ошибка загрузки данных админ панели:', error);
+        }
       } finally {
         setLoading(false);
       }
@@ -105,6 +115,34 @@ export default function Admin() {
                 </div>
                 <Link to="/admin/users" className="btn btn-warning btn-sm w-100 w-md-auto">
                   <span className="d-none d-md-inline">Перейти к пользователям →</span>
+                  <span className="d-md-none">Перейти →</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Уведомление о запросах на восстановление пароля */}
+      {pendingPasswordResets > 0 && (
+        <div className="row mb-3 mb-md-4">
+          <div className="col-12">
+            <div className="alert alert-info alert-dismissible fade show" role="alert">
+              <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 gap-md-3">
+                <div className="d-none d-md-block">
+                  <span className="fs-3">🔑</span>
+                </div>
+                <div className="flex-grow-1">
+                  <h5 className="alert-heading mb-1 mb-md-2">Запросы на восстановление пароля</h5>
+                  <p className="mb-0 mb-md-0 small">
+                    {pendingPasswordResets === 1 
+                      ? '1 запрос на восстановление пароля ожидает подтверждения'
+                      : `${pendingPasswordResets} запросов на восстановление пароля ожидают подтверждения`
+                    }
+                  </p>
+                </div>
+                <Link to="/admin/password-reset" className="btn btn-info btn-sm w-100 w-md-auto">
+                  <span className="d-none d-md-inline">Перейти к запросам →</span>
                   <span className="d-md-none">Перейти →</span>
                 </Link>
               </div>
@@ -192,17 +230,26 @@ export default function Admin() {
           <Link to="/admin/users" className="text-decoration-none">
             <div className="card h-100 border-0 shadow-sm hover-shadow-lg transition-all">
               <div className="card-body text-center p-3 p-md-4">
-                <div className="mb-3">
+                <div className="mb-3 position-relative">
                   <div className="mx-auto d-flex align-items-center justify-content-center rounded-circle bg-info bg-opacity-10" style={{ width: '60px', height: '60px' }}>
                     <span className="fs-2 text-info">👥</span>
                   </div>
+                  {pendingPasswordResets > 0 && (
+                    <div className="position-absolute top-0 end-0 translate-middle">
+                      <span className="badge bg-primary" style={{ fontSize: '0.75rem' }}>
+                        {pendingPasswordResets}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <h5 className="card-title fw-bold text-dark mb-3">Управление пользователями</h5>
                 <p className="card-text text-muted small">
                   Просматривайте статистику пользователей и управляйте их доступом
                 </p>
                 <div className="mt-3">
-                  <span className="badge bg-info">Перейти</span>
+                  <span className={`badge ${pendingPasswordResets > 0 ? 'bg-primary' : 'bg-info'}`}>
+                    {pendingPasswordResets > 0 ? `🔑 ${pendingPasswordResets} запрос${pendingPasswordResets > 1 ? 'ов' : ''}` : 'Перейти'}
+                  </span>
                 </div>
               </div>
             </div>

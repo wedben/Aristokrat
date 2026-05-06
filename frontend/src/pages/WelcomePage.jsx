@@ -1,12 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   FaCrown, FaBookOpen, FaGraduationCap, FaChartBar, FaUser,
   FaRocket, FaStar, FaHeart, FaUsers, FaTrophy
 } from 'react-icons/fa';
+import { api } from '../api';
 
 const WelcomePage = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      api.get('/auth/me')
+        .then(() => setIsLoggedIn(true))
+        .catch(() => setIsLoggedIn(false));
+    } else {
+      setIsLoggedIn(false);
+    }
+  }, []);
   const features = [
     {
       icon: <FaBookOpen className="text-primary" />,
@@ -61,14 +74,23 @@ const WelcomePage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          <Link to="/login" className="btn btn-primary btn-lg px-4 w-100 w-sm-auto">
-            <FaRocket className="me-2" />
-            Начать обучение
-          </Link>
-          <Link to="/register" className="btn btn-outline-primary btn-lg px-4 w-100 w-sm-auto">
-            <FaUser className="me-2" />
-            Регистрация
-          </Link>
+          {isLoggedIn ? (
+            <Link to="/standards" className="btn btn-primary btn-lg px-4 w-100 w-sm-auto">
+              <FaRocket className="me-2" />
+              Начать обучение
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-primary btn-lg px-4 w-100 w-sm-auto">
+                <FaRocket className="me-2" />
+                Начать обучение
+              </Link>
+              <Link to="/register" className="btn btn-outline-primary btn-lg px-4 w-100 w-sm-auto">
+                <FaUser className="me-2" />
+                Регистрация
+              </Link>
+            </>
+          )}
         </motion.div>
       </motion.div>
 
@@ -151,10 +173,17 @@ const WelcomePage = () => {
         <p className="lead text-muted mb-4">
           Станьте частью команды, которая стремится к совершенству в обслуживании гостей
         </p>
-        <Link to="/login" className="btn btn-primary btn-lg">
-          <FaRocket className="me-2" />
-          Начать прямо сейчас
-        </Link>
+        {isLoggedIn ? (
+          <Link to="/standards" className="btn btn-primary btn-lg">
+            <FaRocket className="me-2" />
+            Начать прямо сейчас
+          </Link>
+        ) : (
+          <Link to="/login" className="btn btn-primary btn-lg">
+            <FaRocket className="me-2" />
+            Начать прямо сейчас
+          </Link>
+        )}
       </motion.div>
     </div>
   );

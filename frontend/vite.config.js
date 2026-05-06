@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: process.env.GITHUB_PAGES ? '/Aristokrat/' : '/',
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -20,14 +21,10 @@ export default defineConfig({
       '.loca.lt',
       '.ngrok-free.dev',
       '.ngrok.app',
-      '.ngrok.io'
-    ],
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
+      '.ngrok.io',
+      '.trycloudflare.com'
+    ]
+    // Прокси удалён - используется прямой baseURL из api.ts
+    // Для production используйте VITE_API_URL в переменных окружения
   }
 })

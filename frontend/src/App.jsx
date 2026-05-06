@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { api } from './api'
 import { ToastProvider } from './contexts/ToastContext'
@@ -18,8 +18,31 @@ import AdminTests from './pages/AdminTests'
 import AdminNewCards from './pages/AdminNewCards'
 import AdminUsers from './pages/AdminUsers'
 import AdminUserProfile from './pages/AdminUserProfile'
+import AdminPasswordReset from './pages/AdminPasswordReset'
+import SetNewPassword from './pages/SetNewPassword'
 import AccessDenied from './pages/AccessDenied'
 import TestAPI from './pages/TestAPI'
+
+// Компонент для закрытия навигации на мобильных
+function NavbarCloser() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Закрываем навигацию при изменении маршрута
+    const navbar = document.getElementById('navbarNav');
+    if (navbar && navbar.classList.contains('show')) {
+      const bsCollapse = window.bootstrap?.Collapse?.getInstance(navbar);
+      if (bsCollapse) {
+        bsCollapse.hide();
+      } else {
+        // Fallback если Bootstrap не загружен
+        navbar.classList.remove('show');
+      }
+    }
+  }, [location]);
+  
+  return null;
+}
 
 function Protected({ children }) {
   const token = localStorage.getItem('token')
@@ -43,9 +66,11 @@ function AdminProtected({ children }) {
         setUser(response.data)
         if (response.data.role !== 'admin') {
           window.location.href = '/access-denied'
+          return
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Error fetching admin user:', error)
         localStorage.removeItem('token')
         window.location.href = '/login'
       })
@@ -81,9 +106,11 @@ function ProfileProtected({ children }) {
         setUser(response.data)
         if (response.data.role === 'admin') {
           window.location.href = '/admin'
+          return
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Error fetching user:', error)
         localStorage.removeItem('token')
         window.location.href = '/login'
       })
@@ -122,6 +149,18 @@ function Navigation() {
     }
   }, [])
 
+  const closeMobileNav = () => {
+    const navbar = document.getElementById('navbarNav');
+    if (navbar && navbar.classList.contains('show')) {
+      const bsCollapse = window.bootstrap?.Collapse?.getInstance(navbar);
+      if (bsCollapse) {
+        bsCollapse.hide();
+      } else {
+        navbar.classList.remove('show');
+      }
+    }
+  }
+
   if (!user) {
     return (
       <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm sticky-top">
@@ -146,7 +185,7 @@ function Navigation() {
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav me-auto">
               <li className="nav-item">
-                <Link to="/standards" className="nav-link d-flex align-items-center">
+                <Link to="/standards" className="nav-link d-flex align-items-center" onClick={() => closeMobileNav()}>
                   <span className="me-2">📋</span>
                   <span>Сервис</span>
                 </Link>
@@ -157,13 +196,13 @@ function Navigation() {
                   <span>Меню</span>
                 </a>
                 <ul className="dropdown-menu">
-                  <li><Link to="/bar" className="dropdown-item d-flex align-items-center"><span className="me-2">🍸</span>Барная карта</Link></li>
-                  <li><Link to="/kitchen" className="dropdown-item d-flex align-items-center"><span className="me-2">🍽️</span>Кухня</Link></li>
-                  <li><Link to="/wine" className="dropdown-item d-flex align-items-center"><span className="me-2">🍷</span>Винная карта</Link></li>
+                  <li><Link to="/bar" className="dropdown-item d-flex align-items-center" onClick={() => closeMobileNav()}><span className="me-2">🍸</span>Барная карта</Link></li>
+                  <li><Link to="/kitchen" className="dropdown-item d-flex align-items-center" onClick={() => closeMobileNav()}><span className="me-2">🍽️</span>Кухня</Link></li>
+                  <li><Link to="/wine" className="dropdown-item d-flex align-items-center" onClick={() => closeMobileNav()}><span className="me-2">🍷</span>Винная карта</Link></li>
                 </ul>
               </li>
               <li className="nav-item">
-                <Link to="/tests" className="nav-link d-flex align-items-center">
+                <Link to="/tests" className="nav-link d-flex align-items-center" onClick={() => closeMobileNav()}>
                   <span className="me-2">🧪</span>
                   <span>Тесты</span>
                 </Link>
@@ -213,7 +252,7 @@ function Navigation() {
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto">
             <li className="nav-item">
-              <Link to="/standards" className="nav-link d-flex align-items-center">
+              <Link to="/standards" className="nav-link d-flex align-items-center" onClick={closeMobileNav}>
                 <span className="me-2">📋</span>
                 <span>Сервис</span>
               </Link>
@@ -224,20 +263,20 @@ function Navigation() {
                 <span>Меню</span>
               </a>
               <ul className="dropdown-menu">
-                <li><Link to="/bar" className="dropdown-item d-flex align-items-center"><span className="me-2">🍸</span>Барная карта</Link></li>
-                <li><Link to="/kitchen" className="dropdown-item d-flex align-items-center"><span className="me-2">🍽️</span>Кухня</Link></li>
-                <li><Link to="/wine" className="dropdown-item d-flex align-items-center"><span className="me-2">🍷</span>Винная карта</Link></li>
+                <li><Link to="/bar" className="dropdown-item d-flex align-items-center" onClick={closeMobileNav}><span className="me-2">🍸</span>Барная карта</Link></li>
+                <li><Link to="/kitchen" className="dropdown-item d-flex align-items-center" onClick={closeMobileNav}><span className="me-2">🍽️</span>Кухня</Link></li>
+                <li><Link to="/wine" className="dropdown-item d-flex align-items-center" onClick={closeMobileNav}><span className="me-2">🍷</span>Винная карта</Link></li>
               </ul>
             </li>
             <li className="nav-item">
-              <Link to="/tests" className="nav-link d-flex align-items-center">
+              <Link to="/tests" className="nav-link d-flex align-items-center" onClick={closeMobileNav}>
                 <span className="me-2">🧪</span>
                 <span>Тесты</span>
               </Link>
             </li>
             {user.role !== 'admin' && (
               <li className="nav-item">
-                <Link to="/profile" className="nav-link d-flex align-items-center">
+                <Link to="/profile" className="nav-link d-flex align-items-center" onClick={closeMobileNav}>
                   <span className="me-2">👤</span>
                   <span>Профиль</span>
                 </Link>
@@ -245,7 +284,7 @@ function Navigation() {
             )}
             {user.role === 'admin' && (
               <li className="nav-item">
-                <Link to="/admin" className="nav-link d-flex align-items-center">
+                <Link to="/admin" className="nav-link d-flex align-items-center" onClick={closeMobileNav}>
                   <span className="me-2">⚙️</span>
                   <span>Админ</span>
                 </Link>
@@ -284,15 +323,17 @@ function App() {
   return (
     <ToastProvider>
       <BrowserRouter>
+        <NavbarCloser />
         <Navigation />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/set-new-password" element={<SetNewPassword />} />
           <Route path="/" element={<WelcomePage />} />
-          <Route path="/standards" element={<ServiceStandards />} />
-          <Route path="/bar" element={<BarCards />} />
-          <Route path="/kitchen" element={<KitchenCards />} />
-          <Route path="/wine" element={<WineCards />} />
+          <Route path="/standards" element={<Protected><ServiceStandards /></Protected>} />
+          <Route path="/bar" element={<Protected><BarCards /></Protected>} />
+          <Route path="/kitchen" element={<Protected><KitchenCards /></Protected>} />
+          <Route path="/wine" element={<Protected><WineCards /></Protected>} />
           <Route path="/tests" element={<Protected><TestsList /></Protected>} />
           <Route path="/tests/:id" element={<Protected><TestPage /></Protected>} />
           <Route path="/profile" element={<ProfileProtected><Profile /></ProfileProtected>} />
@@ -301,6 +342,7 @@ function App() {
           <Route path="/admin/tests" element={<AdminProtected><AdminTests /></AdminProtected>} />
           <Route path="/admin/users" element={<AdminProtected><AdminUsers /></AdminProtected>} />
           <Route path="/admin/users/:userId" element={<AdminProtected><AdminUserProfile /></AdminProtected>} />
+          <Route path="/admin/password-reset" element={<AdminProtected><AdminPasswordReset /></AdminProtected>} />
           <Route path="/admin/*" element={<AdminProtected><Admin /></AdminProtected>} />
           <Route path="/access-denied" element={<AccessDenied />} />
           <Route path="/test-api" element={<TestAPI />} />

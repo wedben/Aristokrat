@@ -1,4 +1,17 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: aristokrat-db
+    environment:
+      - POSTGRES_DB=aristokrat
+      - POSTGRES_USER=aristokrat
+      - POSTGRES_PASSWORD=aristokrat
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - aristokrat-network
+
   backend:
     build:
       context: ./backend
@@ -8,10 +21,11 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - ./backend/app.db:/app/app.db
       - ./backend/uploads:/app/uploads
     environment:
-      - DATABASE_URL=sqlite:///./app.db
+      - DATABASE_URL=postgresql+psycopg2://aristokrat:aristokrat@db:5432/aristokrat
+    depends_on:
+      - db
     restart: unless-stopped
     networks:
       - aristokrat-network
@@ -37,4 +51,7 @@ services:
 networks:
   aristokrat-network:
     driver: bridge
+
+volumes:
+  postgres-data:
 
